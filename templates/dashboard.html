@@ -1,1211 +1,193 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vehicle Tracking Dashboard</title>
+    <title>AutomoBee Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet">
     <style>
-        #map { height: 500px; }
-        .alert-banner {
-            animation: slideIn 0.5s ease-out;
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: 100vh;
         }
-        @keyframes slideIn {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
+        .content-grid {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
         }
-        .feed-modal {
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease-in-out;
-            backdrop-filter: blur(8px);
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
         }
-        .feed-modal.visible {
-            opacity: 1;
-            visibility: visible;
+        .detection-card {
+            transition: transform 0.2s;
         }
-        .feed-preview {
-            position: absolute;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease-in-out;
-        }
-        .camera-list-item {
-            transition: all 0.2s ease-in-out;
-        }
-        .camera-list-item:hover {
-            transform: translateX(4px);
-        }
-        .camera-list-item.selected {
+        .detection-card:hover {
             transform: scale(1.02);
-            border-color: #3B82F6;
-            background-color: #EFF6FF;
         }
-        .stat-card {
-            @apply bg-white rounded-xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl hover:scale-105;
-            backdrop-filter: blur(8px);
+        #map { 
+            height: 300px;
+            border-radius: 0.75rem;
         }
-        .glass-card {
-            @apply bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-xl shadow-lg;
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-    <!-- Feed Preview Modal -->
-    <div id="feed-modal" class="feed-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 transform transition-all duration-300">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <div>
-                    <h3 id="modal-title" class="text-xl font-bold text-gray-800"></h3>
-                    <p id="modal-location" class="text-sm text-gray-500 mt-1"></p>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button id="fullscreen-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0 0l-5-5m-7 11h4m-4 0v4m0-4l5 5m5-9v4m0-4h4m-4 0l5 5"/>
-                        </svg>
-                    </button>
-                    <button onclick="closeFeedModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+<body class="bg-gray-50">
+    <!-- Main Layout -->
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="bg-white border-r border-gray-200 p-4 overflow-y-auto">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-800">AutomoBee</h1>
+                <p class="text-sm text-gray-500">Vehicle Detection System</p>
+            </div>
+            
+            <!-- Camera List -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold text-gray-700">Cameras</h2>
+                <div id="camera-list" class="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-hide">
+                    <!-- Camera items will be inserted here -->
                 </div>
             </div>
-            <div class="p-6">
-                <div class="relative">
-                    <video id="modal-video" class="w-full aspect-video bg-black rounded-lg shadow-inner" autoplay muted></video>
-                    <div id="video-controls" class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent opacity-0 transition-opacity duration-300 hover:opacity-100">
-                        <div class="flex items-center justify-between text-white">
-                            <div class="flex items-center space-x-4">
-                                <button id="play-pause" class="hover:text-blue-400 transition-colors">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </button>
-                                <button id="mute-unmute" class="hover:text-blue-400 transition-colors">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-                                    </svg>
-                                </button>
-                                <div class="text-sm">Live</div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content-grid">
+            <!-- Header Stats -->
+            <div class="p-6 bg-white border-b border-gray-200">
+                <div class="stats-grid">
+                    <div class="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-blue-600">Total Detections</p>
+                                <h3 id="total-detections" class="text-2xl font-bold text-gray-900 mt-2">0</h3>
                             </div>
-                            <div class="flex items-center space-x-4">
-                                <div id="detection-status" class="text-sm"></div>
-                                <div id="stream-quality" class="text-sm"></div>
-                            </div>
+                            <span class="text-blue-600 bg-blue-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </span>
                         </div>
+                        <p id="detection-rate" class="text-sm text-gray-500 mt-2">0/hour</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-green-50 border border-green-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-green-600">Active Cameras</p>
+                                <h3 id="active-cameras" class="text-2xl font-bold text-gray-900 mt-2">0</h3>
+                            </div>
+                            <span class="text-green-600 bg-green-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <p id="camera-status" class="text-sm text-gray-500 mt-2">All systems normal</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-red-50 border border-red-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-red-600">System Health</p>
+                                <h3 id="error-rate" class="text-2xl font-bold text-gray-900 mt-2">0%</h3>
+                            </div>
+                            <span class="text-red-600 bg-red-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <p id="total-errors" class="text-sm text-gray-500 mt-2">0 errors</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-purple-50 border border-purple-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-purple-600">Uptime</p>
+                                <h3 id="uptime" class="text-2xl font-bold text-gray-900 mt-2">0h 0m</h3>
+                            </div>
+                            <span class="text-purple-600 bg-purple-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <p id="uptime-percentage" class="text-sm text-gray-500 mt-2">100% uptime</p>
                     </div>
                 </div>
             </div>
-            <!-- Detection History for this Camera -->
-            <div class="p-6 border-t border-gray-100">
-                <h4 class="text-lg font-semibold text-gray-800 mb-4">Recent Detections</h4>
-                <div id="camera-detections" class="grid grid-cols-4 gap-4">
-                    <!-- Detection thumbnails will be inserted here -->
+
+            <!-- Content Area -->
+            <div class="p-6 overflow-y-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Map Section -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-4">Camera Locations</h2>
+                        <div id="map"></div>
+                    </div>
+
+                    <!-- Recent Detections -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-700">Recent Detections</h2>
+                            <select id="detection-filter" class="text-sm border rounded-lg px-3 py-1">
+                                <option value="all">All Types</option>
+                                <option value="car">Cars</option>
+                                <option value="truck">Trucks</option>
+                                <option value="motorcycle">Motorcycles</option>
+                            </select>
+                        </div>
+                        <div id="recent-detections" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide">
+                            <!-- Detection items will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div id="alerts-container" class="mt-6">
+                    <!-- Alerts will be inserted here -->
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Quick View Panel -->
-    <div id="quick-view-panel" class="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-40">
-        <div class="h-full flex flex-col">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-800">Quick View</h3>
-                <button onclick="toggleQuickView()" class="text-gray-400 hover:text-gray-600">
+    <!-- Detection Modal -->
+    <div id="detection-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-800"></h3>
+                <button onclick="closeDetectionModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-4" id="quick-view-feeds">
-                <!-- Mini feeds will be inserted here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick View Toggle Button -->
-    <button onclick="toggleQuickView()" class="fixed right-6 bottom-6 bg-blue-600 text-white rounded-full p-3 shadow-lg hover:bg-blue-700 transition-colors z-30">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-    </button>
-
-    <!-- Alert Banner -->
-    <div id="alert-banner" class="hidden alert-banner fixed top-0 left-0 right-0 bg-red-500 text-white py-4 z-50">
-        <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-                <p id="alert-message" class="font-semibold"></p>
-            </div>
-            <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="text-white hover:text-red-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="container mx-auto px-6 py-8 min-h-screen max-h-screen overflow-y-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0">
-            <div>
-                <h1 class="text-4xl font-bold text-gray-800 mb-2">Vehicle Tracking</h1>
-                <p class="text-gray-600">Real-time surveillance and detection system</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button id="live-btn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-lg">
-                    <span class="flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-white opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
-                    <span>Live</span>
-                </button>
-                <select id="time-range" class="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                    <option value="1h">Last Hour</option>
-                    <option value="6h">Last 6 Hours</option>
-                    <option value="24h">Last 24 Hours</option>
-                </select>
-            </div>
-        </div>
-        
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="stat-card">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Total Detections</h3>
-                    <div class="p-2 bg-blue-100 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                    </div>
-                </div>
-                <p id="total-detections" class="text-3xl font-bold text-blue-600 mb-1">0</p>
-                <p id="detection-rate" class="text-sm text-gray-500 flex items-center">
-                    <span class="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    0/hour
-                </p>
-            </div>
-            <div class="stat-card">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Active Cameras</h3>
-                    <div class="p-2 bg-green-100 rounded-lg">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                </div>
-                <p id="active-cameras" class="text-3xl font-bold text-green-600 mb-1">0</p>
-                <p id="camera-status" class="text-sm text-gray-500 flex items-center">
-                    <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    All systems normal
-                </p>
-            </div>
-            <div class="stat-card">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">System Health</h3>
-                    <div class="p-2 bg-red-100 rounded-lg">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                    </div>
-                </div>
-                <p id="total-errors" class="text-3xl font-bold text-red-600 mb-1">0</p>
-                <p id="error-rate" class="text-sm text-gray-500 flex items-center">
-                    <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                    0% error rate
-                </p>
-            </div>
-            <div class="stat-card">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Uptime</h3>
-                    <div class="p-2 bg-purple-100 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-                <p id="uptime" class="text-3xl font-bold text-purple-600 mb-1">0h 0m</p>
-                <p id="uptime-percentage" class="text-sm text-gray-500 flex items-center">
-                    <span class="inline-block w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                    100% uptime
-                </p>
-            </div>
-        </div>
-
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-24rem)] overflow-hidden">
-            <!-- Left Column: Map and Camera Status -->
-            <div class="lg:col-span-2 space-y-8 overflow-y-auto">
-                <!-- Map View -->
-                <div class="glass-card p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">Detection Map</h2>
-                        <div class="flex space-x-4">
-                            <span class="flex items-center text-sm text-gray-600">
-                                <span class="h-3 w-3 bg-green-500 rounded-full mr-2"></span>
-                                Active
-                            </span>
-                            <span class="flex items-center text-sm text-gray-600">
-                                <span class="h-3 w-3 bg-yellow-500 rounded-full mr-2"></span>
-                                Processing
-                            </span>
-                            <span class="flex items-center text-sm text-gray-600">
-                                <span class="h-3 w-3 bg-red-500 rounded-full mr-2"></span>
-                                Offline
-                            </span>
-                        </div>
-                    </div>
-                    <div id="map" class="rounded-xl shadow-inner"></div>
-                </div>
-
-                <!-- Camera List -->
-                <div class="glass-card p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">Camera Network</h2>
-                        <div class="text-sm text-gray-500">
-                            Use ↑↓ keys to navigate, Enter to view
-                        </div>
-                    </div>
-                    <div id="camera-list" class="space-y-3 focus:outline-none" tabindex="0">
-                        <!-- Camera list items will be inserted here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="space-y-8 overflow-y-auto">
-                <!-- Target Vehicle Info -->
-                <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6">Target Vehicle</h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-600">Make</span>
-                            <span class="font-semibold text-gray-800">Ford</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-600">Model</span>
-                            <span class="font-semibold text-gray-800">F-150</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-600">Color</span>
-                            <span class="font-semibold text-gray-800">Black</span>
-                        </div>
-                        <div class="mt-6">
-                            <div class="flex justify-between text-sm text-gray-600 mb-2">
-                                <span>Search Coverage</span>
-                                <span id="coverage-percentage">0%</span>
-                            </div>
-                            <div class="h-2 bg-gray-200 rounded-full">
-                                <div id="search-progress" class="h-2 bg-blue-600 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Detections -->
-                <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6">Recent Detections</h2>
-                    <div id="recent-detections" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                        <!-- Recent detection items will be inserted here -->
-                    </div>
-                </div>
-
-                <!-- Active Alerts -->
-                <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6">Active Alerts</h2>
-                    <div id="active-alerts" class="space-y-3">
-                        <!-- Alert items will be inserted here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Console Output & Statistics -->
-        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- System Console -->
-            <div class="glass-card p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-800">System Console</h2>
-                    <div class="flex space-x-2">
-                        <button onclick="clearConsole()" class="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
-                            Clear
-                        </button>
-                        <select id="log-level" class="text-sm px-3 py-1 bg-gray-200 rounded-lg">
-                            <option value="all">All Logs</option>
-                            <option value="info">Info</option>
-                            <option value="warning">Warning</option>
-                            <option value="error">Error</option>
-                            <option value="detection">Detections</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="console-output" class="bg-gray-900 rounded-lg p-4 h-[400px] overflow-y-auto font-mono text-sm">
-                    <div class="space-y-1" id="log-container">
-                        <!-- Log entries will be inserted here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detection Statistics -->
-            <div class="glass-card p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-800">Detection Statistics</h2>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-500">Last Updated: </span>
-                        <span id="stats-last-updated" class="text-sm font-medium"></span>
-                    </div>
-                </div>
-                
-                <!-- Vehicle Type Breakdown -->
-                <div class="grid grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white rounded-lg p-4 shadow-sm">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Vehicle Types</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>Cars</span>
-                                    <span id="car-count" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="car-percentage" class="h-2 bg-blue-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>Trucks</span>
-                                    <span id="truck-count" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="truck-percentage" class="h-2 bg-green-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>Unknown</span>
-                                    <span id="unknown-count" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="unknown-percentage" class="h-2 bg-gray-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg p-4 shadow-sm">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Detection Confidence</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>High (>90%)</span>
-                                    <span id="high-confidence" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="high-confidence-percentage" class="h-2 bg-green-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>Medium (70-90%)</span>
-                                    <span id="medium-confidence" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="medium-confidence-percentage" class="h-2 bg-yellow-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span>Low (<70%)</span>
-                                    <span id="low-confidence" class="font-medium">0</span>
-                                </div>
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div id="low-confidence-percentage" class="h-2 bg-red-500 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Detection Timeline -->
-                <div class="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Detection Timeline</h3>
-                    <canvas id="detection-timeline" height="200"></canvas>
+            <div class="p-4">
+                <img id="modal-image" class="w-full rounded-lg" src="" alt="Detection">
+                <div id="modal-details" class="mt-4 grid grid-cols-2 gap-4">
+                    <!-- Detection details will be inserted here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Initialize map
-        const map = L.map('map').setView([36.1699, -115.1398], 11); // Las Vegas coordinates
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Custom marker icons for different states
-        const markerIcons = {
-            online: L.divIcon({
-                className: 'camera-marker',
-                html: `<div class="w-6 h-6 rounded-full bg-green-500 border-2 border-white shadow-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                    </svg>
-                </div>`,
-                iconSize: [24, 24]
-            }),
-            offline: L.divIcon({
-                className: 'camera-marker',
-                html: `<div class="w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                    </svg>
-                </div>`,
-                iconSize: [24, 24]
-            }),
-            analyzing: L.divIcon({
-                className: 'camera-marker',
-                html: `<div class="w-6 h-6 rounded-full bg-yellow-500 border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                    </svg>
-                </div>`,
-                iconSize: [24, 24]
-            }),
-            error: L.divIcon({
-                className: 'camera-marker',
-                html: `<div class="w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
-                    </svg>
-                </div>`,
-                iconSize: [24, 24]
-            })
-        };
-
-        const markers = {};
-        
-        // Initialize SSE connection
-        const evtSource = new EventSource('/stream');
-        
-        let selectedCameraIndex = -1;
-        let cameraFeeds = [];
-        const feedPreview = document.getElementById('feed-preview');
-        const previewVideo = document.getElementById('preview-video');
-        const modalVideo = document.getElementById('modal-video');
-        const feedModal = document.getElementById('feed-modal');
-
-        function initializeVideoFeeds() {
-            const cameraList = document.getElementById('camera-list');
-            
-            // Add keyboard navigation
-            cameraList.addEventListener('keydown', (e) => {
-                switch(e.key) {
-                    case 'ArrowUp':
-                        e.preventDefault();
-                        selectCamera(Math.max(0, selectedCameraIndex - 1));
-                        break;
-                    case 'ArrowDown':
-                        e.preventDefault();
-                        selectCamera(Math.min(cameraFeeds.length - 1, selectedCameraIndex + 1));
-                        break;
-                    case 'Enter':
-                        e.preventDefault();
-                        if (selectedCameraIndex >= 0) {
-                            openFeedModal(cameraFeeds[selectedCameraIndex]);
-                        }
-                        break;
-                }
-            });
-        }
-
-        function selectCamera(index) {
-            const items = document.querySelectorAll('.camera-list-item');
-            items.forEach(item => item.classList.remove('selected'));
-            
-            if (index >= 0 && index < items.length) {
-                selectedCameraIndex = index;
-                const selectedItem = items[index];
-                selectedItem.classList.add('selected');
-                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
-
-        function updateMarkerStatus(name, status, location) {
-            if (!location || !location.lat || !location.lng) return;
-            
-            const position = [location.lat, location.lng];
-            let marker = markers[name];
-            
-            if (!marker) {
-                marker = L.marker(position, {
-                    icon: markerIcons[status] || markerIcons.offline
-                }).addTo(map);
-                markers[name] = marker;
-                
-                // Add hover handlers for live preview
-                marker.getElement().addEventListener('mouseenter', () => showFeedPreview(name, marker));
-                marker.getElement().addEventListener('mouseleave', hideFeedPreview);
-            } else {
-                marker.setIcon(markerIcons[status] || markerIcons.offline);
-            }
-            
-            // Update popup content
-            const statusColor = {
-                online: 'text-green-600',
-                offline: 'text-red-600',
-                analyzing: 'text-yellow-600',
-                error: 'text-red-600'
-            }[status] || 'text-gray-600';
-            
-            marker.bindPopup(`
-                <div class="p-2">
-                    <h3 class="font-bold">${location.name || name}</h3>
-                    <p class="text-sm ${statusColor} font-semibold uppercase">${status}</p>
-                    <p class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</p>
-                </div>
-            `);
-        }
-
-        function showFeedPreview(name, marker) {
-            const camera = cameraFeeds.find(c => c.name === name);
-            if (!camera || !camera.url) return;
-
-            const markerPos = marker.getElement().getBoundingClientRect();
-            feedPreview.style.left = `${markerPos.right + 10}px`;
-            feedPreview.style.top = `${markerPos.top}px`;
-            
-            previewVideo.src = camera.url;
-            feedPreview.classList.remove('hidden');
-            previewVideo.play().catch(() => {});
-        }
-
-        function hideFeedPreview() {
-            feedPreview.classList.add('hidden');
-            previewVideo.src = '';
-        }
-
-        function openFeedModal(camera) {
-            document.getElementById('modal-title').textContent = camera.name;
-            document.getElementById('modal-location').textContent = 
-                `${camera.location?.lat.toFixed(4)}, ${camera.location?.lng.toFixed(4)}`;
-            
-            const video = document.getElementById('modal-video');
-            video.src = camera.url;
-            
-            // Load recent detections for this camera
-            loadCameraDetections(camera.name);
-            
-            feedModal.classList.add('visible');
-            video.play().catch(() => {});
-        }
-
-        function loadCameraDetections(cameraName) {
-            const container = document.getElementById('camera-detections');
-            container.innerHTML = '';
-            
-            // Filter recent detections for this camera
-            const detections = recentDetections.filter(d => d.camera === cameraName);
-            detections.slice(0, 8).forEach(detection => {
-                const div = document.createElement('div');
-                div.className = 'relative group';
-                div.innerHTML = `
-                    <img src="${detection.image}" class="w-full aspect-video object-cover rounded-lg">
-                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                        <div class="text-white text-center">
-                            <p class="text-sm font-medium">${new Date(detection.timestamp).toLocaleTimeString()}</p>
-                            <p class="text-xs">${(detection.confidence * 100).toFixed(1)}% confidence</p>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function closeFeedModal() {
-            feedModal.classList.remove('visible');
-            modalVideo.src = '';
-        }
-
-        function updateDashboard(data) {
-            // Update stats
-            document.getElementById('total-detections').textContent = data.total_detections;
-            document.getElementById('total-errors').textContent = data.total_errors;
-            
-            const activeCount = Object.values(data.camera_stats).filter(
-                stat => stat.consecutive_failures === 0
-            ).length;
-            document.getElementById('active-cameras').textContent = activeCount;
-            
-            // Calculate uptime and error rates
-            const totalCameras = Object.keys(data.camera_stats).length;
-            const errorRate = (data.total_errors / (data.total_detections + data.total_errors) * 100).toFixed(1);
-            document.getElementById('error-rate').textContent = `${errorRate}% error rate`;
-            
-            const uptime = Math.floor(data.uptime / 3600) + 'h ' + 
-                          Math.floor((data.uptime % 3600) / 60) + 'm';
-            document.getElementById('uptime').textContent = uptime;
-            
-            // Update camera grid with status indicators
-            const cameraGrid = document.getElementById('camera-grid');
-            cameraGrid.innerHTML = '';
-            
-            for (const [name, stats] of Object.entries(data.camera_stats)) {
-                const isActive = stats.consecutive_failures === 0;
-                const card = document.createElement('div');
-                card.className = `bg-gray-50 rounded-lg p-4 border-l-4 ${isActive ? 'border-green-500' : 'border-red-500'}`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-semibold">${name}</h3>
-                            <p class="text-sm text-gray-600">Detections: ${stats.total_detections}</p>
-                        </div>
-                        <span class="px-2 py-1 rounded-full text-xs ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${isActive ? 'Active' : 'Offline'}
-                        </span>
-                    </div>
-                    <div class="mt-2">
-                        <div class="h-1 bg-gray-200 rounded-full">
-                            <div class="h-1 bg-blue-600 rounded-full" style="width: ${stats.uptime}%"></div>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Uptime: ${stats.uptime.toFixed(1)}%</p>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Last Active: ${new Date(stats.last_success).toLocaleString()}</p>
-                `;
-                cameraGrid.appendChild(card);
-
-                // Update map markers with initial status
-                if (stats.location) {
-                    updateMarkerStatus(name, isActive ? 'online' : 'offline', stats.location);
-                }
-            }
-
-            // Update recent detections with enhanced details
-            const recentList = document.getElementById('recent-detections');
-            recentList.innerHTML = data.recent_detections.map(det => `
-                <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-                    <img src="${det.image}" class="w-24 h-24 object-cover rounded-lg">
-                    <div class="flex-1">
-                        <div class="flex justify-between">
-                            <h4 class="font-semibold">${det.camera}</h4>
-                            <span class="text-sm text-gray-500">${new Date(det.timestamp).toLocaleString()}</span>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-1">Vehicle Type: ${det.type}</p>
-                        <div class="mt-2">
-                            <div class="h-1 bg-gray-200 rounded-full">
-                                <div class="h-1 bg-blue-600 rounded-full" style="width: ${det.confidence * 100}%"></div>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Confidence: ${(det.confidence * 100).toFixed(1)}%</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-
-            // Update active alerts
-            const alertsContainer = document.getElementById('active-alerts');
-            alertsContainer.innerHTML = data.active_alerts.map(alert => `
-                <div class="p-3 rounded-lg ${alert.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">
-                    <div class="flex items-center">
-                        <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 7a1 1 0 112 0v5a1 1 0 11-2 0V7zm1-5a1 1 0 100 2 1 1 0 000-2z"/>
-                        </svg>
-                        <p class="font-medium">${alert.message}</p>
-                    </div>
-                </div>
-            `).join('');
-
-            // Show alert banner for new alerts
-            if (data.active_alerts.length > 0) {
-                const banner = document.getElementById('alert-banner');
-                banner.classList.remove('hidden');
-                document.getElementById('alert-message').textContent = data.active_alerts[0].message;
-            }
-
-            // Update search coverage
-            const coverage = (data.total_detections / (totalCameras * 100) * 100).toFixed(1);
-            document.getElementById('coverage-percentage').textContent = coverage;
-            document.getElementById('search-progress').style.width = `${coverage}%`;
-
-            // Update camera list for keyboard navigation
-            const cameraList = document.getElementById('camera-list');
-            cameraFeeds = Object.entries(data.camera_stats).map(([name, stats]) => ({
-                name,
-                url: stats.url,
-                status: stats.consecutive_failures === 0 ? 'online' : 'offline',
-                location: stats.location
-            }));
-
-            cameraList.innerHTML = cameraFeeds.map((camera, index) => `
-                <div class="camera-list-item p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${index === selectedCameraIndex ? 'selected' : ''}"
-                     onclick="selectCamera(${index}); openFeedModal(cameraFeeds[${index}])">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 rounded-full ${camera.status === 'online' ? 'bg-green-500' : 'bg-red-500'}"></span>
-                            <span class="font-medium">${camera.name}</span>
-                        </div>
-                        <button class="text-blue-600 hover:text-blue-800">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Update stats periodically
-        function updateStats() {
-            fetch('/api/stats')
-                .then(response => response.json())
-                .then(data => {
-                    // Update total detections
-                    document.getElementById('total-detections').textContent = data.total_detections;
-                    document.getElementById('detection-rate').textContent = `${data.detection_rate}/hour`;
-
-                    // Update active cameras
-                    document.getElementById('active-cameras').textContent = data.active_cameras;
-                    document.getElementById('camera-status').textContent = 
-                        data.active_cameras === Object.keys(data.camera_stats).length 
-                            ? 'All systems normal' 
-                            : `${data.active_cameras}/${Object.keys(data.camera_stats).length} online`;
-
-                    // Update errors
-                    document.getElementById('total-errors').textContent = data.total_errors;
-                    document.getElementById('error-rate').textContent = `${data.error_rate.toFixed(1)}% error rate`;
-
-                    // Update uptime
-                    document.getElementById('uptime').textContent = 
-                        `${data.uptime.hours}h ${data.uptime.minutes}m`;
-                    document.getElementById('uptime-percentage').textContent = 
-                        `${((data.uptime.total_seconds - (data.total_errors * 30)) / data.uptime.total_seconds * 100).toFixed(1)}% uptime`;
-
-                    // Update camera locations on map
-                    Object.entries(data.camera_locations).forEach(([name, location]) => {
-                        const stats = data.camera_stats[name] || {};
-                        const status = stats.status || 'offline';
-                        
-                        // Create or update marker
-                        if (!markers[name]) {
-                            markers[name] = L.marker([location.lat, location.lng], {
-                                icon: markerIcons[status]
-                            }).addTo(map);
-                            
-                            // Add popup with camera info
-                            markers[name].bindPopup(`
-                                <div class="p-2">
-                                    <h3 class="font-bold">${name}</h3>
-                                    <p class="text-sm">Status: ${status}</p>
-                                    <p class="text-sm">Detections: ${stats.total_detections || 0}</p>
-                                </div>
-                            `);
-                        } else {
-                            // Update marker icon based on status
-                            markers[name].setIcon(markerIcons[status]);
-                            
-                            // Update popup content
-                            markers[name].getPopup().setContent(`
-                                <div class="p-2">
-                                    <h3 class="font-bold">${name}</h3>
-                                    <p class="text-sm">Status: ${status}</p>
-                                    <p class="text-sm">Detections: ${stats.total_detections || 0}</p>
-                                </div>
-                            `);
-                        }
-                    });
-
-                    // Update recent detections
-                    const recentDetectionsContainer = document.getElementById('recent-detections');
-                    recentDetectionsContainer.innerHTML = data.recent_detections.map(detection => `
-                        <div class="flex items-center space-x-4 p-2 bg-gray-50 rounded">
-                            <img src="${detection.image}" class="w-24 h-16 object-cover rounded">
-                            <div>
-                                <p class="font-semibold">${detection.camera}</p>
-                                <p class="text-sm text-gray-500">${new Date(detection.timestamp).toLocaleString()}</p>
-                                <p class="text-sm">Confidence: ${(detection.confidence * 100).toFixed(1)}%</p>
-                            </div>
-                        </div>
-                    `).join('');
-
-                    // Update active alerts
-                    const alertsContainer = document.getElementById('active-alerts');
-                    alertsContainer.innerHTML = data.active_alerts.map(alert => `
-                        <div class="p-2 bg-red-50 text-red-700 rounded">
-                            <p class="font-semibold">${alert.type}</p>
-                            <p class="text-sm">${alert.message}</p>
-                            <p class="text-xs text-gray-500">${new Date(alert.timestamp).toLocaleString()}</p>
-                        </div>
-                    `).join('');
-                })
-                .catch(error => console.error('Error updating stats:', error));
-        }
-
-        // Update stats every 5 seconds
-        setInterval(updateStats, 5000);
-        updateStats(); // Initial update
-
-        // Handle SSE events
-        evtSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'camera_status') {
-                const camera = data.data;
-                const marker = markers[camera.name];
-                
-                if (marker && camera.location) {
-                    marker.setIcon(markerIcons[camera.status]);
-                    marker.getPopup().setContent(`
-                        <div class="p-2">
-                            <h3 class="font-bold">${camera.name}</h3>
-                            <p class="text-sm">Status: ${camera.status}</p>
-                            <p class="text-sm">Last Update: ${new Date(camera.timestamp).toLocaleString()}</p>
-                        </div>
-                    `);
-                }
-            }
-            
-            // Trigger stats update when receiving events
-            updateStats();
-        };
-
-        // Initial data load
-        fetch('/api/stats')
-            .then(response => response.json())
-            .then(data => updateDashboard(data));
-
-        // Refresh data every 30 seconds
-        setInterval(() => {
-            fetch('/api/stats')
-                .then(response => response.json())
-                .then(data => updateDashboard(data));
-        }, 30000);
-
-        // Initialize video feeds
-        initializeVideoFeeds();
-
-        let isQuickViewOpen = false;
-        let activeFeeds = new Map();
-        let selectedCamera = null;
-
-        function toggleQuickView() {
-            const panel = document.getElementById('quick-view-panel');
-            isQuickViewOpen = !isQuickViewOpen;
-            panel.style.transform = isQuickViewOpen ? 'translateX(0)' : 'translateX(100%)';
-            
-            if (isQuickViewOpen) {
-                updateQuickViewFeeds();
-            } else {
-                // Stop all quick view feeds
-                document.querySelectorAll('#quick-view-feeds video').forEach(video => {
-                    video.pause();
-                    video.src = '';
-                });
-            }
-        }
-
-        function updateQuickViewFeeds() {
-            const container = document.getElementById('quick-view-feeds');
-            container.innerHTML = '';
-            
-            Object.entries(cameraFeeds).slice(0, 4).forEach(([name, camera]) => {
-                const feedDiv = document.createElement('div');
-                feedDiv.className = 'relative rounded-lg overflow-hidden shadow-md';
-                feedDiv.innerHTML = `
-                    <video class="w-full aspect-video bg-black rounded-lg" autoplay muted playsinline></video>
-                    <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black to-transparent">
-                        <p class="text-sm text-white font-medium">${name}</p>
-                    </div>
-                `;
-                
-                const video = feedDiv.querySelector('video');
-                video.src = camera.url;
-                
-                feedDiv.addEventListener('click', () => openFeedModal(camera));
-                container.appendChild(feedDiv);
-            });
-        }
-
-        // Video controls
-        document.getElementById('play-pause').addEventListener('click', () => {
-            const video = document.getElementById('modal-video');
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        });
-
-        document.getElementById('mute-unmute').addEventListener('click', () => {
-            const video = document.getElementById('modal-video');
-            video.muted = !video.muted;
-        });
-
-        document.getElementById('fullscreen-btn').addEventListener('click', () => {
-            const video = document.getElementById('modal-video');
-            if (video.requestFullscreen) {
-                video.requestFullscreen();
-            }
-        });
-
-        // Handle camera marker clicks
-        function onMarkerClick(camera) {
-            openFeedModal(camera);
-        }
-
-        // Update marker click handlers
-        const originalUpdateMarkerStatus = updateMarkerStatus;
-        updateMarkerStatus = function(name, status, location) {
-            originalUpdateMarkerStatus(name, status, location);
-            if (markers[name]) {
-                markers[name].on('click', () => {
-                    const camera = cameraFeeds.find(c => c.name === name);
-                    if (camera) {
-                        openFeedModal(camera);
-                    }
-                });
-            }
-        };
-
-        // Console logging functionality
-        const logContainer = document.getElementById('log-container');
-        const logLevel = document.getElementById('log-level');
-        const maxLogEntries = 1000;
-        let logEntries = [];
-
-        function addLogEntry(type, message, timestamp = new Date()) {
-            const colors = {
-                info: 'text-blue-400',
-                warning: 'text-yellow-400',
-                error: 'text-red-400',
-                detection: 'text-green-400'
-            };
-
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${colors[type] || 'text-gray-300'}`;
-            entry.dataset.type = type;
-            entry.innerHTML = `
-                <span class="opacity-75">[${timestamp.toLocaleTimeString()}]</span>
-                <span class="font-medium">[${type.toUpperCase()}]</span>
-                <span>${message}</span>
-            `;
-
-            logEntries.push(entry);
-            
-            // Keep only the last 1000 entries
-            if (logEntries.length > maxLogEntries) {
-                logEntries = logEntries.slice(-maxLogEntries);
-            }
-
-            updateLogDisplay();
-        }
-
-        function updateLogDisplay() {
-            const selectedLevel = logLevel.value;
-            logContainer.innerHTML = '';
-            
-            logEntries.forEach(entry => {
-                if (selectedLevel === 'all' || entry.dataset.type === selectedLevel) {
-                    logContainer.appendChild(entry.cloneNode(true));
-                }
-            });
-
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        function clearConsole() {
-            logEntries = [];
-            logContainer.innerHTML = '';
-        }
-
-        logLevel.addEventListener('change', updateLogDisplay);
-
-        // Detection statistics
-        let detectionStats = {
-            vehicles: {
-                car: 0,
-                truck: 0,
-                unknown: 0
-            },
-            confidence: {
-                high: 0,
-                medium: 0,
-                low: 0
-            },
-            timeline: {
-                labels: [],
-                data: []
-            }
-        };
-
-        // Initialize timeline chart
-        const timelineCtx = document.getElementById('detection-timeline').getContext('2d');
-        const timelineChart = new Chart(timelineCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Detections',
-                    data: [],
-                    borderColor: 'rgb(59, 130, 246)',
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
-            }
-        });
-
-        function updateDetectionStats(detection) {
-            // Update vehicle type counts
-            if (detection.type === 'car') detectionStats.vehicles.car++;
-            else if (detection.type === 'truck') detectionStats.vehicles.truck++;
-            else detectionStats.vehicles.unknown++;
-
-            // Update confidence counts
-            const confidence = detection.confidence * 100;
-            if (confidence > 90) detectionStats.confidence.high++;
-            else if (confidence > 70) detectionStats.confidence.medium++;
-            else detectionStats.confidence.low++;
-
-            // Update timeline with fixed length
-            const maxTimelinePoints = 20;
-            const timestamp = new Date(detection.timestamp);
-            const timeStr = timestamp.toLocaleTimeString();
-            
-            detectionStats.timeline.labels.push(timeStr);
-            detectionStats.timeline.data.push(1);
-            
-            // Keep only the last 20 points
-            if (detectionStats.timeline.labels.length > maxTimelinePoints) {
-                detectionStats.timeline.labels = detectionStats.timeline.labels.slice(-maxTimelinePoints);
-                detectionStats.timeline.data = detectionStats.timeline.data.slice(-maxTimelinePoints);
-            }
-
-            updateDetectionDisplay();
-            addLogEntry('detection', `Detected ${detection.type} with ${(detection.confidence * 100).toFixed(1)}% confidence at ${detection.camera}`);
-        }
-
-        function updateDetectionDisplay() {
-            const totalVehicles = Object.values(detectionStats.vehicles).reduce((a, b) => a + b, 0);
-            const totalConfidence = Object.values(detectionStats.confidence).reduce((a, b) => a + b, 0);
-
-            // Update vehicle type counts and percentages
-            document.getElementById('car-count').textContent = detectionStats.vehicles.car;
-            document.getElementById('truck-count').textContent = detectionStats.vehicles.truck;
-            document.getElementById('unknown-count').textContent = detectionStats.vehicles.unknown;
-
-            document.getElementById('car-percentage').style.width = 
-                `${(detectionStats.vehicles.car / totalVehicles * 100) || 0}%`;
-            document.getElementById('truck-percentage').style.width = 
-                `${(detectionStats.vehicles.truck / totalVehicles * 100) || 0}%`;
-            document.getElementById('unknown-percentage').style.width = 
-                `${(detectionStats.vehicles.unknown / totalVehicles * 100) || 0}%`;
-
-            // Update confidence counts and percentages
-            document.getElementById('high-confidence').textContent = detectionStats.confidence.high;
-            document.getElementById('medium-confidence').textContent = detectionStats.confidence.medium;
-            document.getElementById('low-confidence').textContent = detectionStats.confidence.low;
-
-            document.getElementById('high-confidence-percentage').style.width = 
-                `${(detectionStats.confidence.high / totalConfidence * 100) || 0}%`;
-            document.getElementById('medium-confidence-percentage').style.width = 
-                `${(detectionStats.confidence.medium / totalConfidence * 100) || 0}%`;
-            document.getElementById('low-confidence-percentage').style.width = 
-                `${(detectionStats.confidence.low / totalConfidence * 100) || 0}%`;
-
-            // Update timeline chart
-            timelineChart.data.labels = detectionStats.timeline.labels;
-            timelineChart.data.datasets[0].data = detectionStats.timeline.data;
-            timelineChart.update();
-
-            document.getElementById('stats-last-updated').textContent = new Date().toLocaleTimeString();
-        }
-
-        // Modify the existing event handler to include logging
-        evtSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'camera_status') {
-                const camera = data.data;
-                addLogEntry('info', `Camera ${camera.name} status changed to ${camera.status}`);
-                // ... existing camera status code ...
-            } else if (data.type === 'detection') {
-                updateDetectionStats(data.data);
-            } else if (data.type === 'error') {
-                addLogEntry('error', data.message);
-            }
-            
-            updateStats();
-        };
-
-        // Add initial log entry
-        addLogEntry('info', 'System initialized and ready for detection');
-
-        // Modify the recent detections update to maintain fixed length
-        function updateRecentDetections(detection) {
-            const container = document.getElementById('recent-detections');
-            const maxDetections = 10;
-            
-            // Add new detection
-            const div = document.createElement('div');
-            div.className = 'bg-white rounded-lg p-4 shadow-sm';
-            div.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium">${detection.type}</p>
-                        <p class="text-sm text-gray-500">${detection.camera}</p>
-                    </div>
-                    <p class="text-sm text-gray-400">${new Date(detection.timestamp).toLocaleTimeString()}</p>
-                </div>
-            `;
-            
-            container.insertBefore(div, container.firstChild);
-            
-            // Remove excess detections
-            while (container.children.length > maxDetections) {
-                container.removeChild(container.lastChild);
-            }
-        }
-
-        // Add cleanup for alerts
-        function updateAlerts(alerts) {
-            const container = document.getElementById('active-alerts');
-            const maxAlerts = 5;
-            
-            container.innerHTML = alerts
-                .slice(0, maxAlerts)
-                .map(alert => `
-                    <div class="p-2 bg-red-50 text-red-700 rounded">
-                        <p class="font-semibold">${alert.type}</p>
-                        <p class="text-sm">${alert.message}</p>
-                        <p class="text-xs text-gray-500">${new Date(alert.timestamp).toLocaleString()}</p>
-                    </div>
-                `).join('');
-        }
-    </script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html> 

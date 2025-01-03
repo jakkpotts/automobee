@@ -37,6 +37,9 @@ class Alert:
     camera: Optional[str] = None
 
 class DashboardState:
+    MAX_DETECTIONS = 50  # Limit stored detections
+    MAX_ALERTS = 20      # Limit stored alerts
+    
     def __init__(self):
         self.camera_stats = {}
         self.total_detections = 0
@@ -61,15 +64,15 @@ class DashboardState:
     def add_detection(self, detection: Detection):
         """Add a new detection and maintain history"""
         self.recent_detections.insert(0, detection)
-        if len(self.recent_detections) > 10:
+        if len(self.recent_detections) > self.MAX_DETECTIONS:
             self.recent_detections.pop()
         self.total_detections += 1
 
     def add_alert(self, alert: Alert):
         """Add a new alert"""
         self.active_alerts.append(alert)
-        # Keep only last 10 alerts
-        if len(self.active_alerts) > 10:
+        # Keep only last MAX_ALERTS alerts
+        if len(self.active_alerts) > self.MAX_ALERTS:
             self.active_alerts.pop(0)
 
     def clear_alert(self, camera: str):
@@ -113,10 +116,11 @@ def get_stats():
     now = datetime.now()
     hour_ago = now - timedelta(hours=1)
     
+    # Limit detections to last hour only
     recent_detections = [
         d for d in dashboard_state.recent_detections
         if datetime.fromisoformat(d.timestamp) > hour_ago
-    ]
+    ][:30]  # Only return last 30 detections max
     
     # Count active cameras (those without errors in last 5 minutes)
     active_cameras = sum(1 for stats in dashboard_state.camera_stats.values() 
@@ -141,8 +145,8 @@ def get_stats():
             'minutes': uptime_minutes,
             'total_seconds': uptime_seconds
         },
-        'recent_detections': [asdict(d) for d in dashboard_state.recent_detections],
-        'active_alerts': [asdict(a) for a in dashboard_state.active_alerts],
+        'recent_detections': [asdict(d) for d in recent_detections],  # Limited to 30 most recent
+        'active_alerts': [asdict(a) for a in dashboard_state.active_alerts[-10:]],  # Only last 10 alerts
         'detection_rate': len(recent_detections),
         'active_cameras': active_cameras,
         'error_rate': error_rate,
