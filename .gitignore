@@ -94,3 +94,6 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json 
+nvroads.com.env
+las-vegas.html
+yolov8n.pt

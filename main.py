@@ -1,55 +1,34 @@
-from vehicle_detector import TrafficCameraMonitor
+from vehicle_detector import VehicleDetector
 from feed_selector import CameraFeedSelector
+import asyncio
 
-def main():
-    # Initialize the camera feed selector
-    feed_selector = CameraFeedSelector()
-    available_feeds = feed_selector.fetch_available_feeds()
-    
-    # Initialize monitor with model
-    monitor = TrafficCameraMonitor(model_path="path/to/model.weights")
-    
-    # Print available intersections
-    print("\nAvailable camera feeds:")
-    for idx, intersection in enumerate(feed_selector.get_all_intersections(), 1):
-        print(f"{idx}. {intersection}")
-    
-    # Get user input for feed selection
-    selected_indices = input("\nEnter the numbers of feeds to monitor (comma-separated): ")
-    
-    # Add selected feeds to monitor
-    intersections = feed_selector.get_all_intersections()
-    for idx in selected_indices.split(','):
-        try:
-            idx = int(idx.strip()) - 1
-            if 0 <= idx < len(intersections):
-                intersection = intersections[idx]
-                camera_info = feed_selector.get_camera_info(intersection)
-                
-                # Add camera with full information
-                monitor.add_camera_feed(
-                    camera_id=camera_info['id'],
-                    url=camera_info['url'],
-                    camera_info={
-                        'name': camera_info['name'],
-                        'coordinates': camera_info.get('coordinates'),
-                        'intersection': intersection
-                    }
-                )
-                print(f"Added camera: {intersection}")
-        except ValueError:
-            print(f"Invalid input: {idx}")
-    
-    # Define target vehicle
+async def main():
+    # Target vehicle configuration
     target_vehicle = {
-        "type": "sedan",
-        "color": "red",
-        "make": "Toyota",
-        "model": "Camry",
+        "type": "truck",        # Options: car, motorcycle, bus, truck
+        "color": "black",       # Options: red, blue, white, black
+        "make": None,         # Not currently implemented
+        "model": None         # Not currently implemented
     }
+
+    # Initialize components
+    feed_selector = CameraFeedSelector()
+    feeds = feed_selector.fetch_available_feeds()
     
-    # Start monitoring
-    monitor.monitor_feeds(target_vehicle)
+    # Select strategic cameras
+    strategic_cameras = feed_selector.select_strategic_cameras()
+    
+    # Initialize detector with 30-second sampling interval
+    detector = VehicleDetector(
+        sample_interval=30,
+        max_retries=3,
+        retry_delay=5,
+        alert_email="your.email@domain.com",
+        alert_threshold=5
+    )
+    
+    # Start monitoring with target vehicle parameters
+    await detector.monitor_feeds(strategic_cameras, target_vehicle)
 
 if __name__ == "__main__":
-    main() 
+    asyncio.run(main()) 

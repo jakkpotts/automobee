@@ -1,0 +1,39 @@
+
+
+
+
+var resources = Object.prototype.toString.call(resources) == "[object Array]" ? resources : [];
+    resources.FloodgateAlertBarAsLink = 'false';
+    resources.BackToTop = 'Back to top';
+    resources.EmergencyAlertPopUp = 'Emergency Alert';
+    resources.AnUnexpectedErrorOccurred = 'An unexpected error has occurred. Please refresh the page.';
+    resources.UseAlertBellIcon = 'false';
+    resources.NoAlert = 'No Alert';
+    resources.Alerts = 'Advisories';
+    resources.AlertRefreshInterval = '30000';
+    resources.SmartBannerEnableMobileAppPopup = 'False';
+    resources.AlertFailedToSave = 'Failed to save alert';
+    resources.AlertSavedSuccessfully = 'Your notification has been saved successfully.';
+    resources.ManageRoutesAndAlerts = 'My Routes & Notifications';
+    resources.ShowSimplifyRouteNotificationModal = 'true';
+    resources.ViewLinkOnAlertSavedSuccessfully = ' To view, click <a href="/my511">Manage Routes & Notifications</a>.';
+    resources.MoreInfo = 'More Info';
+    resources.LessInfo = 'Less Info';
+    resources.KO_required = 'This field is required.';
+    resources.KO_min = 'Please enter a value greater than or equal to {0}.';
+    resources.KO_max = 'Please enter a value less than or equal to {0}.';
+    resources.KO_minLength = 'Please enter at least {0} characters.';
+    resources.KO_maxLength = 'Please enter no more than {0} characters.';
+    resources.KO_pattern = 'Please check this value.';
+    resources.KO_step = 'The value must increment by {0}.';
+    resources.KO_email = 'Please enter a proper email address.';
+    resources.KO_date = 'Please enter a proper date.';
+    resources.KO_dateISO = 'Please enter a proper date.';
+    resources.KO_number = 'Please enter a number.';
+    resources.KO_digit = 'Please enter a digit.';
+    resources.KO_phoneUS = 'Please specify a valid phone number.';
+    resources.KO_equal = 'Values must equal.';
+    resources.KO_notEqual = 'Please choose another value.';
+    resources.KO_unique = 'Please make sure the value is unique.';
+    resources.FeatureSlideModal = 'True';
+    resources.FeatureSlideModalVersion = '1';

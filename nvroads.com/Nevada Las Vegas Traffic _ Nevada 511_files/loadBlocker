@@ -1,0 +1,6 @@
+
+
+
+
+var resources = Object.prototype.toString.call(resources) == "[object Array]" ? resources : [];
+    resources.Loading = 'Loading...';

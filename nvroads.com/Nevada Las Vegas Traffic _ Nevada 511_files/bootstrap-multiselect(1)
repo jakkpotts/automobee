@@ -1,0 +1,13 @@
+
+
+
+
+var resources = Object.prototype.toString.call(resources) == "[object Array]" ? resources : [];
+    resources.NoneSelected = 'None selected';
+    resources.SelectAll = 'Select all';
+    resources.DeselectAll = 'Deselect all';
+    resources.AllSelected = 'All selected';
+    resources.Selected = 'selected';
+    resources.Search = 'Search';
+    resources.ItemSelectedFormat = '{0} item selected';
+    resources.ItemsSelectedFormat = '{0} items selected';

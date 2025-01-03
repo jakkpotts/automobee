@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vehicle Detection Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Vehicle Detection Dashboard</h1>
+        
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Total Detections</h3>
+                <p id="total-detections" class="text-3xl font-bold text-blue-600">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Active Cameras</h3>
+                <p id="active-cameras" class="text-3xl font-bold text-green-600">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Total Errors</h3>
+                <p id="total-errors" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Uptime</h3>
+                <p id="uptime" class="text-3xl font-bold text-purple-600">0h 0m</p>
+            </div>
+        </div>
+
+        <!-- Camera Status -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">Camera Status</h2>
+            <div id="camera-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Camera cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Recent Detections -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">Recent Detections</h2>
+            <div id="recent-detections" class="space-y-4">
+                <!-- Recent detection items will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Detection Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-4">Detection History</h2>
+            <canvas id="detection-chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Initialize SSE connection
+        const evtSource = new EventSource('/stream');
+        
+        // Initialize detection chart
+        const ctx = document.getElementById('detection-chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Detections',
+                    data: [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    tension: 0.1
+                }]
+            }
+        });
+
+        // Update dashboard with new data
+        function updateDashboard(data) {
+            document.getElementById('total-detections').textContent = data.total_detections;
+            document.getElementById('total-errors').textContent = data.total_errors;
+            document.getElementById('active-cameras').textContent = Object.keys(data.camera_stats).length;
+            
+            const uptime = Math.floor(data.uptime / 3600) + 'h ' + 
+                          Math.floor((data.uptime % 3600) / 60) + 'm';
+            document.getElementById('uptime').textContent = uptime;
+
+            // Update camera grid
+            const cameraGrid = document.getElementById('camera-grid');
+            cameraGrid.innerHTML = '';
+            
+            for (const [name, stats] of Object.entries(data.camera_stats)) {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 rounded p-4';
+                card.innerHTML = `
+                    <h3 class="font-semibold">${name}</h3>
+                    <p>Detections: ${stats.total_detections}</p>
+                    <p>Uptime: ${stats.uptime.toFixed(1)}%</p>
+                    <p class="text-sm text-gray-500">Last Success: ${new Date(stats.last_success).toLocaleString()}</p>
+                `;
+                cameraGrid.appendChild(card);
+            }
+
+            // Update recent detections
+            const recentList = document.getElementById('recent-detections');
+            recentList.innerHTML = data.recent_detections.map(det => `
+                <div class="flex items-center space-x-4 p-2 bg-gray-50 rounded">
+                    <img src="${det.image}" class="w-16 h-16 object-cover rounded">
+                    <div>
+                        <p class="font-semibold">${det.camera}</p>
+                        <p class="text-sm text-gray-600">${new Date(det.timestamp).toLocaleString()}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Update chart
+            if (data.recent_detections.length > 0) {
+                chart.data.labels.push(new Date().toLocaleTimeString());
+                chart.data.datasets[0].data.push(data.total_detections);
+                
+                if (chart.data.labels.length > 20) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                
+                chart.update();
+            }
+        }
+
+        // Handle SSE events
+        evtSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        };
+
+        // Initial data load
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(data => updateDashboard(data));
+
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => updateDashboard(data));
+        }, 30000);
+    </script>
+</body>
+</html> 

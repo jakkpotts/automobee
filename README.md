@@ -1,15 +1,19 @@
 # Las Vegas Traffic Camera Vehicle Detector
 
-A Python-based system that monitors Las Vegas traffic camera feeds and uses AI to detect and track specific vehicles across multiple intersections.
+A Python-based system that monitors Las Vegas traffic camera feeds and uses AI to detect and track specific vehicles across multiple intersections. Features a real-time web dashboard for monitoring system status and detections.
 
 ## Features
 
 - Real-time monitoring of Las Vegas traffic cameras
 - Vehicle detection using YOLOv8
 - Color and vehicle type classification
+- Make/model detection (currently optimized for Ford F-150)
 - Automated screenshot capture of matches
 - Detailed match logging with timestamp and location data
 - Multi-camera support with intersection mapping
+- Real-time web dashboard
+- Rate limiting and error handling
+- System health monitoring
 
 ## Installation
 
@@ -32,73 +36,84 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. Run the main script:
+1. Start the monitoring dashboard:
+```bash
+python dashboard.py
+```
+
+2. In a new terminal, run the main detection system:
 ```bash
 python main.py
 ```
 
-2. Select cameras to monitor from the displayed list of available intersections
+3. Access the dashboard at: http://localhost:8675
 
-3. The system will begin monitoring the selected feeds for vehicles matching the target description
+### Dashboard Features
+
+- Real-time statistics overview
+- Camera status monitoring
+- Recent detection display with images
+- Detection history graph
+- System health alerts
+- Camera uptime tracking
 
 ### Configuration
 
 Target vehicle details can be modified in `main.py`:
 ```python
 target_vehicle = {
-    "type": "sedan",  # Options: car, truck, bus, motorcycle
-    "color": "red",   # Options: red, blue, white, black
-    "make": "Toyota",
-    "model": "Camry"
+    "type": "truck",        # Options: car, motorcycle, bus, truck
+    "color": "black",       # Options: red, blue, white, black
+    "make": "Ford",         # Currently supports Ford vehicles
+    "model": "F-150"        # Currently supports F-150 model
 }
 ```
 
-## Supported Vehicle Types
-
-- Car
-- Motorcycle
-- Bus
-- Truck
-
-## Supported Colors
-
-- Red
-- Blue
-- White
-- Black
-
-Additional colors can be added by modifying the `color_ranges` dictionary in `vehicle_detector.py`.
+System parameters can be adjusted when initializing the detector:
+```python
+detector = VehicleDetector(
+    sample_interval=30,     # Seconds between camera checks
+    max_retries=3,         # Number of retries for failed camera access
+    retry_delay=5,         # Seconds between retries
+    alert_threshold=5      # Consecutive failures before alert
+)
+```
 
 ## Project Structure
 
 ```
 .
-├── feed_selector.py    # Camera feed management
-├── vehicle_detector.py # Vehicle detection and tracking
-├── main.py            # Main application entry
-└── requirements.txt   # Project dependencies
+├── dashboard.py          # Web dashboard server
+├── feed_selector.py      # Camera feed management
+├── vehicle_detector.py   # Vehicle detection and tracking
+├── rate_limiter.py      # Request rate limiting
+├── train_classifier.py  # Make/model classifier training
+├── collect_data.py     # Dataset collection for make/model training
+├── main.py              # Main application entry
+├── requirements.txt      # Project dependencies
+└── templates/
+    └── dashboard.html    # Dashboard template
 ```
 
 ## Output
 
-When a matching vehicle is detected, the system:
+The system generates three types of output:
 
-1. Saves the full frame as an image
-2. Saves a cropped image of the detected vehicle
-3. Creates a JSON metadata file containing:
-   - Timestamp with timezone
-   - Intersection location
-   - Camera details
-   - Detection confidence
-   - Vehicle characteristics
+1. Match Files (in `matches/` directory):
+   - Full frame images
+   - Cropped vehicle images
+   - JSON metadata files
 
-Files are saved in the `matches/` directory with the following structure:
-```
-matches/
-├── {camera_id}_{timestamp}.jpg           # Full frame
-├── {camera_id}_{timestamp}_vehicle_0.jpg # Vehicle crop
-└── {camera_id}_{timestamp}_metadata.json # Detection metadata
-```
+2. Monitoring Data (in `monitoring/` directory):
+   - System statistics
+   - Camera health data
+   - Detection history
+
+3. Web Dashboard:
+   - Real-time statistics
+   - Camera status cards
+   - Recent detections feed
+   - Performance graphs
 
 ## Performance Considerations
 
@@ -107,14 +122,45 @@ matches/
   - Hardware capabilities (CPU/GPU)
   - Network bandwidth
 - GPU acceleration is automatically used if available
-- Rate limiting is implemented to prevent overwhelming camera feeds
+- M2 Mac support via MPS backend
+- Rate limiting prevents camera feed overload
+- Automatic retry on camera feed failures
+- Concurrent processing of multiple cameras
+
+## Error Handling
+
+The system includes robust error handling for:
+- Network connectivity issues
+- Camera feed failures
+- Image processing errors
+- Resource management
+- System resource constraints
+
+## Monitoring
+
+The dashboard provides real-time monitoring of:
+- System uptime
+- Camera health
+- Detection rates
+- Error rates
+- Resource usage
+- Recent detections
 
 ## Limitations
 
 - Color detection accuracy may vary based on lighting conditions
-- Vehicle make/model detection not currently implemented
+- Make/model detection currently optimized for Ford F-150
 - Requires stable internet connection
 - Camera feed availability depends on NV Roads system
+
+## System Requirements
+
+- Python 3.8 or higher
+- 8GB RAM minimum (16GB recommended)
+- NVIDIA GPU with CUDA support (optional)
+- Apple M1/M2 chip (supported via MPS)
+- Stable internet connection (minimum 10Mbps)
+- 500MB free disk space for base installation
 
 ## Contributing
 
@@ -137,17 +183,21 @@ This tool is for educational purposes only. Ensure compliance with all local law
 - Nevada DOT for providing traffic camera feeds
 - YOLOv8 team for the object detection model
 - OpenCV community for computer vision tools
+- Flask team for the web framework
+- TailwindCSS for dashboard styling
 
-## System Requirements
+## Model Training
 
-- Python 3.8 or higher
-- 8GB RAM minimum (16GB recommended)
-- NVIDIA GPU with CUDA support (optional, for GPU acceleration)
-- Stable internet connection (minimum 10Mbps)
-- 500MB free disk space for base installation
+The system includes a make/model classifier trained on the VMMRdb dataset:
 
-## Additional Resources
+1. Data Collection:
+```bash
+python collect_data.py
+```
+This will download and organize vehicle images, focusing on Ford F-150 samples.
 
-- [YOLOv8 Documentation](https://docs.ultralytics.com/)
-- [OpenCV Documentation](https://docs.opencv.org/)
-- [Nevada DOT Camera Feeds](https://www.nvroads.com/)
+2. Model Training:
+```bash
+python train_classifier.py
+```
+This trains an EfficientNet-based classifier optimized for F-150 detection.

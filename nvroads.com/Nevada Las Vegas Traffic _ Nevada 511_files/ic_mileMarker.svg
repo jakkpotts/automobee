@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #016a52;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <rect id="Rounded_Rectangle_2" data-name="Rounded Rectangle 2" class="cls-1" x="1" y="1" width="14" height="14" rx="2" ry="2"/>
+  <path id="M_copy" data-name="M copy" class="cls-2" d="M5.814,11.967v-6.2l1.558,6.2H8.9l1.563-6.2v6.2h1.477V4.093H9.558L8.146,9.464,6.717,4.093H4.337v7.874H5.814Z"/>
+</svg>
