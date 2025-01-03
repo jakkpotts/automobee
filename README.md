@@ -1,6 +1,6 @@
 # AutomoBee - Intelligent Vehicle Detection System
 
-A sophisticated Python-based system that leverages AI to monitor traffic camera feeds for vehicle detection, classification, and tracking. The system uses state-of-the-art computer vision models to identify specific vehicles based on type, color, make, and model, with real-time monitoring capabilities through a web dashboard.
+A sophisticated Python-based system that leverages AI to monitor traffic camera feeds for vehicle detection, classification, and tracking. The system features a real-time web dashboard for monitoring multiple camera feeds, with advanced vehicle detection capabilities and comprehensive system health monitoring.
 
 ## 🚀 Features
 
@@ -8,27 +8,30 @@ A sophisticated Python-based system that leverages AI to monitor traffic camera 
   - Real-time processing using YOLOv8
   - Multi-class vehicle type classification (cars, trucks, motorcycles, buses)
   - Color detection and analysis
-  - Make/model classification (optimized for Ford F-150)
+  - Make/model classification
   - High-accuracy vehicle tracking
+
+- **Interactive Dashboard**
+  - Real-time monitoring web interface
+  - Live detection feed with SSE updates
+  - Interactive map with camera locations
+  - System health monitoring and alerts
+  - Comprehensive performance metrics
+  - Mobile-responsive design
 
 - **Smart Camera Management**
   - Multi-camera feed support
   - Automatic feed selection and prioritization
   - Built-in rate limiting and error handling
   - Robust recovery mechanisms
+  - Geographic location tracking
 
-- **Real-time Monitoring**
-  - Web-based dashboard interface
-  - Live detection feed
-  - System health monitoring
-  - Performance metrics and statistics
-  - Email alerts for system issues
-
-- **Efficient Resource Usage**
-  - Automatic hardware acceleration (CUDA/MPS/CPU)
-  - Concurrent processing
-  - Configurable sampling intervals
-  - Smart resource management
+- **Real-time Analytics**
+  - Detection rate monitoring
+  - Camera uptime tracking
+  - Error rate analysis
+  - System performance metrics
+  - Historical data tracking
 
 ## 🛠 Installation
 
