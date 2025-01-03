@@ -330,6 +330,119 @@
                 </div>
             </div>
         </div>
+
+        <!-- Console Output & Statistics -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- System Console -->
+            <div class="glass-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">System Console</h2>
+                    <div class="flex space-x-2">
+                        <button onclick="clearConsole()" class="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
+                            Clear
+                        </button>
+                        <select id="log-level" class="text-sm px-3 py-1 bg-gray-200 rounded-lg">
+                            <option value="all">All Logs</option>
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="error">Error</option>
+                            <option value="detection">Detections</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="console-output" class="bg-gray-900 rounded-lg p-4 h-[400px] overflow-y-auto font-mono text-sm">
+                    <div class="space-y-1" id="log-container">
+                        <!-- Log entries will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Statistics -->
+            <div class="glass-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">Detection Statistics</h2>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">Last Updated: </span>
+                        <span id="stats-last-updated" class="text-sm font-medium"></span>
+                    </div>
+                </div>
+                
+                <!-- Vehicle Type Breakdown -->
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Vehicle Types</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Cars</span>
+                                    <span id="car-count" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="car-percentage" class="h-2 bg-blue-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Trucks</span>
+                                    <span id="truck-count" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="truck-percentage" class="h-2 bg-green-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Unknown</span>
+                                    <span id="unknown-count" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="unknown-percentage" class="h-2 bg-gray-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Detection Confidence</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>High (>90%)</span>
+                                    <span id="high-confidence" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="high-confidence-percentage" class="h-2 bg-green-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Medium (70-90%)</span>
+                                    <span id="medium-confidence" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="medium-confidence-percentage" class="h-2 bg-yellow-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Low (<70%)</span>
+                                    <span id="low-confidence" class="font-medium">0</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div id="low-confidence-percentage" class="h-2 bg-red-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detection Timeline -->
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Detection Timeline</h3>
+                    <canvas id="detection-timeline" height="200"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -860,6 +973,193 @@
                 });
             }
         };
+
+        // Console logging functionality
+        const logContainer = document.getElementById('log-container');
+        const logLevel = document.getElementById('log-level');
+        const maxLogEntries = 1000;
+        let logEntries = [];
+
+        function addLogEntry(type, message, timestamp = new Date()) {
+            const colors = {
+                info: 'text-blue-400',
+                warning: 'text-yellow-400',
+                error: 'text-red-400',
+                detection: 'text-green-400'
+            };
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${colors[type] || 'text-gray-300'}`;
+            entry.dataset.type = type;
+            entry.innerHTML = `
+                <span class="opacity-75">[${timestamp.toLocaleTimeString()}]</span>
+                <span class="font-medium">[${type.toUpperCase()}]</span>
+                <span>${message}</span>
+            `;
+
+            logEntries.push(entry);
+            if (logEntries.length > maxLogEntries) {
+                logEntries.shift();
+            }
+
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const selectedLevel = logLevel.value;
+            logContainer.innerHTML = '';
+            
+            logEntries.forEach(entry => {
+                if (selectedLevel === 'all' || entry.dataset.type === selectedLevel) {
+                    logContainer.appendChild(entry.cloneNode(true));
+                }
+            });
+
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearConsole() {
+            logEntries = [];
+            logContainer.innerHTML = '';
+        }
+
+        logLevel.addEventListener('change', updateLogDisplay);
+
+        // Detection statistics
+        let detectionStats = {
+            vehicles: {
+                car: 0,
+                truck: 0,
+                unknown: 0
+            },
+            confidence: {
+                high: 0,
+                medium: 0,
+                low: 0
+            },
+            timeline: {
+                labels: [],
+                data: []
+            }
+        };
+
+        // Initialize timeline chart
+        const timelineCtx = document.getElementById('detection-timeline').getContext('2d');
+        const timelineChart = new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Detections',
+                    data: [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        function updateDetectionStats(detection) {
+            // Update vehicle type counts
+            if (detection.type === 'car') detectionStats.vehicles.car++;
+            else if (detection.type === 'truck') detectionStats.vehicles.truck++;
+            else detectionStats.vehicles.unknown++;
+
+            // Update confidence counts
+            const confidence = detection.confidence * 100;
+            if (confidence > 90) detectionStats.confidence.high++;
+            else if (confidence > 70) detectionStats.confidence.medium++;
+            else detectionStats.confidence.low++;
+
+            // Update timeline
+            const timestamp = new Date(detection.timestamp);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            if (detectionStats.timeline.labels.length > 20) {
+                detectionStats.timeline.labels.shift();
+                detectionStats.timeline.data.shift();
+            }
+            
+            detectionStats.timeline.labels.push(timeStr);
+            detectionStats.timeline.data.push(1);
+
+            updateDetectionDisplay();
+            addLogEntry('detection', `Detected ${detection.type} with ${confidence.toFixed(1)}% confidence at ${detection.camera}`);
+        }
+
+        function updateDetectionDisplay() {
+            const totalVehicles = Object.values(detectionStats.vehicles).reduce((a, b) => a + b, 0);
+            const totalConfidence = Object.values(detectionStats.confidence).reduce((a, b) => a + b, 0);
+
+            // Update vehicle type counts and percentages
+            document.getElementById('car-count').textContent = detectionStats.vehicles.car;
+            document.getElementById('truck-count').textContent = detectionStats.vehicles.truck;
+            document.getElementById('unknown-count').textContent = detectionStats.vehicles.unknown;
+
+            document.getElementById('car-percentage').style.width = 
+                `${(detectionStats.vehicles.car / totalVehicles * 100) || 0}%`;
+            document.getElementById('truck-percentage').style.width = 
+                `${(detectionStats.vehicles.truck / totalVehicles * 100) || 0}%`;
+            document.getElementById('unknown-percentage').style.width = 
+                `${(detectionStats.vehicles.unknown / totalVehicles * 100) || 0}%`;
+
+            // Update confidence counts and percentages
+            document.getElementById('high-confidence').textContent = detectionStats.confidence.high;
+            document.getElementById('medium-confidence').textContent = detectionStats.confidence.medium;
+            document.getElementById('low-confidence').textContent = detectionStats.confidence.low;
+
+            document.getElementById('high-confidence-percentage').style.width = 
+                `${(detectionStats.confidence.high / totalConfidence * 100) || 0}%`;
+            document.getElementById('medium-confidence-percentage').style.width = 
+                `${(detectionStats.confidence.medium / totalConfidence * 100) || 0}%`;
+            document.getElementById('low-confidence-percentage').style.width = 
+                `${(detectionStats.confidence.low / totalConfidence * 100) || 0}%`;
+
+            // Update timeline chart
+            timelineChart.data.labels = detectionStats.timeline.labels;
+            timelineChart.data.datasets[0].data = detectionStats.timeline.data;
+            timelineChart.update();
+
+            document.getElementById('stats-last-updated').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Modify the existing event handler to include logging
+        evtSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'camera_status') {
+                const camera = data.data;
+                addLogEntry('info', `Camera ${camera.name} status changed to ${camera.status}`);
+                // ... existing camera status code ...
+            } else if (data.type === 'detection') {
+                updateDetectionStats(data.data);
+            } else if (data.type === 'error') {
+                addLogEntry('error', data.message);
+            }
+            
+            updateStats();
+        };
+
+        // Add initial log entry
+        addLogEntry('info', 'System initialized and ready for detection');
     </script>
 </body>
 </html> 
