@@ -1,3 +1,58 @@
+# Las Vegas Traffic Camera Vehicle Detector
+
+A Python-based system that monitors Las Vegas traffic camera feeds and uses AI to detect and track specific vehicles across multiple intersections.
+
+## Features
+
+- Real-time monitoring of Las Vegas traffic cameras
+- Vehicle detection using YOLOv8
+- Color and vehicle type classification
+- Automated screenshot capture of matches
+- Detailed match logging with timestamp and location data
+- Multi-camera support with intersection mapping
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/las-vegas-vehicle-detector.git
+cd las-vegas-vehicle-detector
+```
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install required packages:
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+1. Run the main script:
+```bash
+python main.py
+```
+
+2. Select cameras to monitor from the displayed list of available intersections
+
+3. The system will begin monitoring the selected feeds for vehicles matching the target description
+
+### Configuration
+
+Target vehicle details can be modified in `main.py`:
+```python
+target_vehicle = {
+    "type": "sedan",  # Options: car, truck, bus, motorcycle
+    "color": "red",   # Options: red, blue, white, black
+    "make": "Toyota",
+    "model": "Camry"
+}
+```
+
 ## Supported Vehicle Types
 
 - Car
@@ -13,6 +68,37 @@
 - Black
 
 Additional colors can be added by modifying the `color_ranges` dictionary in `vehicle_detector.py`.
+
+## Project Structure
+
+```
+.
+├── feed_selector.py    # Camera feed management
+├── vehicle_detector.py # Vehicle detection and tracking
+├── main.py            # Main application entry
+└── requirements.txt   # Project dependencies
+```
+
+## Output
+
+When a matching vehicle is detected, the system:
+
+1. Saves the full frame as an image
+2. Saves a cropped image of the detected vehicle
+3. Creates a JSON metadata file containing:
+   - Timestamp with timezone
+   - Intersection location
+   - Camera details
+   - Detection confidence
+   - Vehicle characteristics
+
+Files are saved in the `matches/` directory with the following structure:
+```
+matches/
+├── {camera_id}_{timestamp}.jpg           # Full frame
+├── {camera_id}_{timestamp}_vehicle_0.jpg # Vehicle crop
+└── {camera_id}_{timestamp}_metadata.json # Detection metadata
+```
 
 ## Performance Considerations
 
@@ -51,3 +137,5 @@ This tool is for educational purposes only. Ensure compliance with all local law
 - Nevada DOT for providing traffic camera feeds
 - YOLOv8 team for the object detection model
 - OpenCV community for computer vision tools
+
+## Project Structure
