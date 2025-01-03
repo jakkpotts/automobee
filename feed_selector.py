@@ -3,6 +3,11 @@ import requests
 from typing import Dict, List
 import re
 import json
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 class CameraFeedSelector:
     def __init__(self):

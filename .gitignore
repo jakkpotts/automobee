@@ -48,6 +48,8 @@ yolov8*.pt
 *.engine
 logs/
 *.log
+las-vegas.html
+.env
 
 # OS specific
 .DS_Store
