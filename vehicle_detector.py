@@ -1,7 +1,7 @@
 import cv2
 import requests
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from typing import Dict, List, Optional
 import logging
@@ -19,6 +19,8 @@ from typing import Optional, List, Dict, Set
 import smtplib
 from email.message import EmailMessage
 from dashboard import event_queue, dashboard_state
+from rate_limiter import RateLimiter
+from vehicle_classifier import VehicleMakeModelClassifier
 
 @dataclass
 class CameraStatus:
@@ -81,6 +83,9 @@ class VehicleDetector:
         # Start monitoring task
         if alert_email:
             asyncio.create_task(self._monitor_health())
+        
+        # Initialize make/model classifier
+        self.make_model_classifier = VehicleMakeModelClassifier()
 
     def _setup_logging(self) -> logging.Logger:
         logging.basicConfig(
@@ -105,31 +110,32 @@ class VehicleDetector:
             await self.session.close()
             self.session = None
 
-    async def get_camera_snapshot(self, url: str) -> Optional[Image.Image]:
+    async def get_camera_stream(self, url: str) -> Optional[cv2.VideoCapture]:
         """
-        Get camera snapshot with retry logic and error handling
+        Initialize video stream connection with retry logic
         """
-        for attempt in range(self.max_retries):
-            try:
-                async with self.session.get(url) as response:
-                    if response.status == 200:
-                        img_data = await response.read()
-                        return Image.open(io.BytesIO(img_data))
-                    else:
-                        self.logger.warning(
-                            f"Failed to get image from {url}, "
-                            f"status: {response.status}"
-                        )
-            except aiohttp.ClientError as e:
-                self.logger.error(f"Network error accessing {url}: {e}")
-            except Exception as e:
-                self.logger.error(f"Error processing image from {url}: {e}")
+        try:
+            # Convert snapshot URL to stream URL
+            stream_url = url.replace('/snapshot', '/stream')
             
-            if attempt < self.max_retries - 1:
-                self.logger.info(f"Retrying in {self.retry_delay} seconds...")
-                await asyncio.sleep(self.retry_delay)
+            # Try HLS stream first
+            hls_url = f"{stream_url}/playlist.m3u8"
+            cap = cv2.VideoCapture(hls_url)
             
-        return None
+            if not cap.isOpened():
+                # Try RTSP stream as fallback
+                rtsp_url = f"rtsp://{stream_url}"
+                cap = cv2.VideoCapture(rtsp_url)
+                
+            if cap.isOpened():
+                return cap
+            else:
+                self.logger.error(f"Failed to open stream: {stream_url}")
+                return None
+            
+        except Exception as e:
+            self.logger.error(f"Error connecting to stream {url}: {e}")
+            return None
 
     async def monitor_feeds(self, cameras: Dict[str, Dict], target_vehicle: Dict):
         """
@@ -170,74 +176,88 @@ class VehicleDetector:
 
     async def process_camera(self, name: str, camera: Dict, target_vehicle: Dict):
         """Process a single camera feed with rate limiting and monitoring"""
-        # Initialize camera status if needed
         if name not in self.camera_status:
             self.camera_status[name] = CameraStatus(name=name)
         
-        # Check rate limit
-        if not await self.rate_limiter.acquire(name):
-            self.logger.warning(f"Rate limit exceeded for camera {name}")
-            return
-        
         try:
-            # Get snapshot from camera
-            img = await self.get_camera_snapshot(camera['url'])
-            if img is None:
-                raise ValueError(f"Failed to get image from camera {name}")
+            # Get video stream
+            cap = await self.get_camera_stream(camera['url'])
+            if cap is None:
+                raise ValueError(f"Failed to get stream from camera {name}")
             
-            # Run detection on image
-            results = self.detector(img)
-            
-            matches = []
-            
-            for det in results[0].boxes.data.tolist():
-                x1, y1, x2, y2, conf, cls = det
+            # Process frames at specified interval
+            last_process_time = 0
+            while True:
+                current_time = time.time()
                 
-                # Verify detection is a vehicle
-                if int(cls) not in self.vehicle_classes:
+                # Check rate limit
+                if not await self.rate_limiter.acquire(name):
+                    await asyncio.sleep(1)
                     continue
-                
-                # Check if it's a truck (class 7)
-                if target_vehicle['type'] == 'truck' and int(cls) != 7:
-                    continue
-                
-                # Crop vehicle image
-                vehicle_img = img.crop((int(x1), int(y1), int(x2), int(y2)))
-                
-                # Check if it's black
-                if target_vehicle['color'] == 'black' and not self._is_black_vehicle(vehicle_img):
-                    continue
-                
-                matches.append({
-                    'bbox': (x1, y1, x2, y2),
-                    'confidence': conf,
-                    'type': self.vehicle_classes[int(cls)],
-                    'location': name
-                })
+                    
+                # Process frame at sample interval
+                if current_time - last_process_time >= self.sample_interval:
+                    ret, frame = cap.read()
+                    if not ret:
+                        raise ValueError("Failed to read frame")
+                    
+                    # Convert frame to PIL Image for processing
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    img = Image.fromarray(frame_rgb)
+                    
+                    # Run detection on frame
+                    results = self.detector(img)
+                    
+        matches = []
+                    for det in results[0].boxes.data.tolist():
+            x1, y1, x2, y2, conf, cls = det
             
-            if matches:
-                self.logger.info(f"Camera {name}: Found {len(matches)} matching vehicles")
-                await self._save_matches(name, img, matches)
+            if int(cls) not in self.vehicle_classes:
+                continue
                 
-            # Update success stats
-            self.camera_status[name].last_success = datetime.now()
-            self.camera_status[name].consecutive_failures = 0
-            self.camera_status[name].total_detections += len(matches)
-            
-            # Update global stats
-            self.stats['total_detections'] += len(matches)
-            self.stats['camera_stats'][name] = {
-                'total_detections': self.camera_status[name].total_detections,
-                'last_success': self.camera_status[name].last_success,
-                'uptime': self._calculate_uptime(name)
-            }
-            
+                        # For trucks, check if it's a Ford F-150
+                        if (target_vehicle['type'] == 'truck' and int(cls) == 7 and
+                            target_vehicle.get('make') == 'ford' and
+                            target_vehicle.get('model') == 'f-150'):
+                            
+                            vehicle_img = img.crop((int(x1), int(y1), int(x2), int(y2)))
+                            
+                            # Check if it's black and a Ford F-150
+                            if (not target_vehicle['color'] or 
+                                self._is_black_vehicle(vehicle_img)):
+                                
+                                if self.make_model_classifier.is_ford_f150(vehicle_img):
+                    matches.append({
+                        'bbox': (x1, y1, x2, y2),
+                        'confidence': conf,
+                                        'type': 'truck',
+                                        'make': 'ford',
+                                        'model': 'f-150',
+                                        'location': name
+                                    })
+                
+                    if matches:
+                        self.logger.info(f"Camera {name}: Found {len(matches)} matching vehicles")
+                        await self._save_matches(name, img, matches)
+                    
+                    # Update stats
+                    self.camera_status[name].last_success = datetime.now()
+                    self.camera_status[name].consecutive_failures = 0
+                    self.camera_status[name].total_detections += len(matches)
+                    
+                    last_process_time = current_time
+                
+                # Small sleep to prevent CPU overload
+                await asyncio.sleep(0.1)
+                
         except Exception as e:
-            # Update failure stats
             self.camera_status[name].consecutive_failures += 1
             self.camera_status[name].last_error = str(e)
             self.stats['total_errors'] += 1
             raise
+        finally:
+            if 'cap' in locals() and cap is not None:
+                cap.release()
 
     def _is_black_vehicle(self, img: Image.Image) -> bool:
         """Check if vehicle is black"""
@@ -305,7 +325,7 @@ class VehicleDetector:
                         'type': 'detection',
                         'data': metadata
                     })
-                    
+                        
                 except Exception as e:
                     self.logger.error(f"Error saving match {idx} from {camera_name}: {e}")
                     continue
@@ -429,3 +449,37 @@ class VehicleDetector:
         except Exception as e:
             self.logger.error(f"Failed to load make/model classifier: {e}")
             return None 
+
+class RateLimiter:
+    def __init__(self, calls: int, period: int):
+        """
+        Initialize rate limiter
+        Args:
+            calls: Number of calls allowed per period
+            period: Time period in seconds
+        """
+        self.calls = calls
+        self.period = period
+        self.timestamps: Dict[str, List[datetime]] = {}
+
+    async def acquire(self, key: str) -> bool:
+        """
+        Check if we can make a request for the given key
+        Returns True if request is allowed, False otherwise
+        """
+        now = datetime.now()
+        cutoff = now - timedelta(seconds=self.period)
+        
+        # Initialize timestamps list for new keys
+        if key not in self.timestamps:
+            self.timestamps[key] = []
+        
+        # Remove old timestamps
+        self.timestamps[key] = [ts for ts in self.timestamps[key] if ts > cutoff]
+        
+        # Check if we can make another request
+        if len(self.timestamps[key]) < self.calls:
+            self.timestamps[key].append(now)
+            return True
+            
+        return False 

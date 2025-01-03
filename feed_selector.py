@@ -85,8 +85,8 @@ class CameraFeedSelector:
                             'name': name,
                             'region': region,
                             'roadway': roadway,
-                            'url': f"{self.base_url}/cameras/{camera_id}/snapshot",
-                            'stream_url': f"{self.base_url}/cameras/{camera_id}/stream"
+                            'url': f"{self.base_url}/cameras/{camera_id}/stream",
+                            'stream_type': 'hls'
                         }
                 
                 # Check if we've got all cameras

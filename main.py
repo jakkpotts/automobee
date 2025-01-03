@@ -7,8 +7,8 @@ async def main():
     target_vehicle = {
         "type": "truck",        # Options: car, motorcycle, bus, truck
         "color": "black",       # Options: red, blue, white, black
-        "make": None,         # Not currently implemented
-        "model": None         # Not currently implemented
+        "make": "ford",         # Not currently implemented
+        "model": "f-150"        # Not currently implemented
     }
 
     # Initialize components
