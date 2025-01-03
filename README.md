@@ -1,26 +1,41 @@
-# Las Vegas Traffic Camera Vehicle Detector
+# AutomoBee - Intelligent Vehicle Detection System
 
-A Python-based system that monitors Las Vegas traffic camera feeds and uses AI to detect and track specific vehicles across multiple intersections. Features a real-time web dashboard for monitoring system status and detections.
+A sophisticated Python-based system that leverages AI to monitor traffic camera feeds for vehicle detection, classification, and tracking. The system uses state-of-the-art computer vision models to identify specific vehicles based on type, color, make, and model, with real-time monitoring capabilities through a web dashboard.
 
-## Features
+## 🚀 Features
 
-- Real-time monitoring of Las Vegas traffic cameras
-- Vehicle detection using YOLOv8
-- Color and vehicle type classification
-- Make/model detection (currently optimized for Ford F-150)
-- Automated screenshot capture of matches
-- Detailed match logging with timestamp and location data
-- Multi-camera support with intersection mapping
-- Real-time web dashboard
-- Rate limiting and error handling
-- System health monitoring
+- **Advanced Vehicle Detection**
+  - Real-time processing using YOLOv8
+  - Multi-class vehicle type classification (cars, trucks, motorcycles, buses)
+  - Color detection and analysis
+  - Make/model classification (optimized for Ford F-150)
+  - High-accuracy vehicle tracking
 
-## Installation
+- **Smart Camera Management**
+  - Multi-camera feed support
+  - Automatic feed selection and prioritization
+  - Built-in rate limiting and error handling
+  - Robust recovery mechanisms
+
+- **Real-time Monitoring**
+  - Web-based dashboard interface
+  - Live detection feed
+  - System health monitoring
+  - Performance metrics and statistics
+  - Email alerts for system issues
+
+- **Efficient Resource Usage**
+  - Automatic hardware acceleration (CUDA/MPS/CPU)
+  - Concurrent processing
+  - Configurable sampling intervals
+  - Smart resource management
+
+## 🛠 Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/las-vegas-vehicle-detector.git
-cd las-vegas-vehicle-detector
+git clone https://github.com/yourusername/automobee.git
+cd automobee
 ```
 
 2. Create and activate a virtual environment:
@@ -29,140 +44,144 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. Install required packages:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## 📋 Prerequisites
+
+- Python 3.8+
+- CUDA-capable GPU (optional, for acceleration)
+- Apple Silicon Mac (optional, for MPS acceleration)
+- Stable internet connection
+- Sufficient storage for detection archives
+
+## 🚦 Usage
 
 1. Start the monitoring dashboard:
 ```bash
 python dashboard.py
 ```
 
-2. In a new terminal, run the main detection system:
+2. Launch the main detection system:
 ```bash
 python main.py
 ```
 
-3. Access the dashboard at: http://localhost:8675
+3. Access the dashboard at `http://localhost:8675`
 
-### Dashboard Features
+## ⚙️ Configuration
 
-- Real-time statistics overview
-- Camera status monitoring
-- Recent detection display with images
-- Detection history graph
-- System health alerts
-- Camera uptime tracking
+### Vehicle Detection Parameters
 
-### Configuration
-
-Target vehicle details can be modified in `main.py`:
+Modify target vehicle specifications in `main.py`:
 ```python
 target_vehicle = {
-    "type": "truck",        # Options: car, motorcycle, bus, truck
-    "color": "black",       # Options: red, blue, white, black
-    "make": "Ford",         # Currently supports Ford vehicles
-    "model": "F-150"        # Currently supports F-150 model
+    "type": "truck",     # Options: car, motorcycle, bus, truck
+    "color": "black",    # Options: red, blue, white, black
+    "make": "ford",      # Currently optimized for Ford
+    "model": "f-150"     # Currently optimized for F-150
 }
 ```
 
-System parameters can be adjusted when initializing the detector:
+### System Settings
+
+Adjust detector parameters in `main.py`:
 ```python
 detector = VehicleDetector(
-    sample_interval=30,     # Seconds between camera checks
-    max_retries=3,         # Number of retries for failed camera access
-    retry_delay=5,         # Seconds between retries
-    alert_threshold=5      # Consecutive failures before alert
+    sample_interval=30,    # Seconds between camera checks
+    max_retries=3,        # Number of retries on failure
+    retry_delay=5,        # Seconds between retries
+    alert_email="your.email@domain.com",
+    alert_threshold=5     # Failures before alerting
 )
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-.
-├── dashboard.py          # Web dashboard server
-├── feed_selector.py      # Camera feed management
-├── vehicle_detector.py   # Vehicle detection and tracking
-├── rate_limiter.py      # Request rate limiting
-├── train_classifier.py  # Make/model classifier training
-├── collect_data.py     # Dataset collection for make/model training
-├── main.py              # Main application entry
-├── requirements.txt      # Project dependencies
-└── templates/
-    └── dashboard.html    # Dashboard template
+automobee/
+├── vehicle_detector.py   # Core detection engine
+├── vehicle_classifier.py # Make/model classification
+├── feed_selector.py     # Camera feed management
+├── rate_limiter.py     # Request rate limiting
+├── dashboard.py        # Web interface server
+├── train_classifier.py # Model training utilities
+├── collect_data.py    # Training data collection
+├── main.py           # Application entry point
+├── requirements.txt  # Project dependencies
+└── monitoring/      # System statistics and logs
 ```
 
-## Output
+## 📊 Output
 
 The system generates three types of output:
 
-1. Match Files (in `matches/` directory):
-   - Full frame images
+1. **Detection Records** (`matches/`)
+   - Full frame captures
    - Cropped vehicle images
-   - JSON metadata files
+   - Detection metadata (JSON)
 
-2. Monitoring Data (in `monitoring/` directory):
-   - System statistics
+2. **System Monitoring** (`monitoring/`)
+   - Performance statistics
    - Camera health data
    - Detection history
 
-3. Web Dashboard:
-   - Real-time statistics
-   - Camera status cards
-   - Recent detections feed
-   - Performance graphs
+3. **Live Dashboard**
+   - Real-time detection feed
+   - System status overview
+   - Performance metrics
+   - Alert notifications
 
-## Performance Considerations
+## 🔧 Advanced Usage
 
-- Processing speed depends on:
-  - Number of camera feeds being monitored
-  - Hardware capabilities (CPU/GPU)
-  - Network bandwidth
-- GPU acceleration is automatically used if available
-- M2 Mac support via MPS backend
-- Rate limiting prevents camera feed overload
-- Automatic retry on camera feed failures
-- Concurrent processing of multiple cameras
+### Training Custom Models
 
-## Error Handling
+1. Collect training data:
+```bash
+python collect_data.py
+```
 
-The system includes robust error handling for:
+2. Train the make/model classifier:
+```bash
+python train_classifier.py
+```
+
+### Performance Optimization
+
+- Adjust `sample_interval` based on hardware capabilities
+- Use GPU acceleration when available
+- Configure rate limiting based on network capacity
+- Optimize camera feed selection for coverage
+
+## 🛡 Error Handling
+
+The system includes comprehensive error handling for:
 - Network connectivity issues
 - Camera feed failures
-- Image processing errors
-- Resource management
-- System resource constraints
+- Processing errors
+- Resource constraints
+- System overload conditions
 
-## Monitoring
+## 📈 Monitoring
 
 The dashboard provides real-time monitoring of:
 - System uptime
 - Camera health
 - Detection rates
-- Error rates
-- Resource usage
+- Error statistics
+- Resource utilization
 - Recent detections
 
-## Limitations
+## ⚠️ Limitations
 
-- Color detection accuracy may vary based on lighting conditions
-- Make/model detection currently optimized for Ford F-150
-- Requires stable internet connection
-- Camera feed availability depends on NV Roads system
+- Color detection accuracy varies with lighting conditions
+- Make/model detection optimized for specific vehicles
+- Requires stable network connection
+- Performance depends on hardware capabilities
 
-## System Requirements
-
-- Python 3.8 or higher
-- 8GB RAM minimum (16GB recommended)
-- NVIDIA GPU with CUDA support (optional)
-- Apple M1/M2 chip (supported via MPS)
-- Stable internet connection (minimum 10Mbps)
-- 500MB free disk space for base installation
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -170,34 +189,13 @@ The dashboard provides real-time monitoring of:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
+## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Disclaimer
+## 🙏 Acknowledgments
 
-This tool is for educational purposes only. Ensure compliance with all local laws and regulations regarding traffic camera usage and vehicle tracking. This is not an official tool of the Nevada Department of Transportation.
-
-## Acknowledgments
-
-- Nevada DOT for providing traffic camera feeds
-- YOLOv8 team for the object detection model
-- OpenCV community for computer vision tools
-- Flask team for the web framework
-- TailwindCSS for dashboard styling
-
-## Model Training
-
-The system includes a make/model classifier trained on the VMMRdb dataset:
-
-1. Data Collection:
-```bash
-python collect_data.py
-```
-This will download and organize vehicle images, focusing on Ford F-150 samples.
-
-2. Model Training:
-```bash
-python train_classifier.py
-```
-This trains an EfficientNet-based classifier optimized for F-150 detection.
+- YOLOv8 for object detection
+- EfficientNet for vehicle classification
+- OpenCV for image processing
+- PyTorch for deep learning capabilities
