@@ -208,13 +208,13 @@ class VehicleDetector:
                     # Run detection on frame
                     results = self.detector(img)
                     
-        matches = []
+                    matches = []
                     for det in results[0].boxes.data.tolist():
-            x1, y1, x2, y2, conf, cls = det
-            
-            if int(cls) not in self.vehicle_classes:
-                continue
-                
+                        x1, y1, x2, y2, conf, cls = det
+                        
+                        if int(cls) not in self.vehicle_classes:
+                            continue
+                            
                         # For trucks, check if it's a Ford F-150
                         if (target_vehicle['type'] == 'truck' and int(cls) == 7 and
                             target_vehicle.get('make') == 'ford' and
@@ -227,9 +227,9 @@ class VehicleDetector:
                                 self._is_black_vehicle(vehicle_img)):
                                 
                                 if self.make_model_classifier.is_ford_f150(vehicle_img):
-                    matches.append({
-                        'bbox': (x1, y1, x2, y2),
-                        'confidence': conf,
+                                    matches.append({
+                                        'bbox': (x1, y1, x2, y2),
+                                        'confidence': conf,
                                         'type': 'truck',
                                         'make': 'ford',
                                         'model': 'f-150',
@@ -247,9 +247,8 @@ class VehicleDetector:
                     
                     last_process_time = current_time
                 
-                # Small sleep to prevent CPU overload
-                await asyncio.sleep(0.1)
-                
+                    # Small sleep to prevent CPU overload
+                    await asyncio.sleep(0.1)
         except Exception as e:
             self.camera_status[name].consecutive_failures += 1
             self.camera_status[name].last_error = str(e)
