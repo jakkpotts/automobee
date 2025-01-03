@@ -138,4 +138,16 @@ This tool is for educational purposes only. Ensure compliance with all local law
 - YOLOv8 team for the object detection model
 - OpenCV community for computer vision tools
 
-## Project Structure
+## System Requirements
+
+- Python 3.8 or higher
+- 8GB RAM minimum (16GB recommended)
+- NVIDIA GPU with CUDA support (optional, for GPU acceleration)
+- Stable internet connection (minimum 10Mbps)
+- 500MB free disk space for base installation
+
+## Additional Resources
+
+- [YOLOv8 Documentation](https://docs.ultralytics.com/)
+- [OpenCV Documentation](https://docs.opencv.org/)
+- [Nevada DOT Camera Feeds](https://www.nvroads.com/)
