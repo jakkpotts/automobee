@@ -155,7 +155,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container mx-auto px-6 py-8">
+    <div class="container mx-auto px-6 py-8 min-h-screen max-h-screen overflow-y-auto">
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0">
             <div>
@@ -244,9 +244,9 @@
         </div>
 
         <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-24rem)] overflow-hidden">
             <!-- Left Column: Map and Camera Status -->
-            <div class="lg:col-span-2 space-y-8">
+            <div class="lg:col-span-2 space-y-8 overflow-y-auto">
                 <!-- Map View -->
                 <div class="glass-card p-6">
                     <div class="flex justify-between items-center mb-6">
@@ -284,7 +284,7 @@
             </div>
 
             <!-- Right Column -->
-            <div class="space-y-8">
+            <div class="space-y-8 overflow-y-auto">
                 <!-- Target Vehicle Info -->
                 <div class="glass-card p-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-6">Target Vehicle</h2>
@@ -998,8 +998,10 @@
             `;
 
             logEntries.push(entry);
+            
+            // Keep only the last 1000 entries
             if (logEntries.length > maxLogEntries) {
-                logEntries.shift();
+                logEntries = logEntries.slice(-maxLogEntries);
             }
 
             updateLogDisplay();
@@ -1089,20 +1091,22 @@
             else if (confidence > 70) detectionStats.confidence.medium++;
             else detectionStats.confidence.low++;
 
-            // Update timeline
+            // Update timeline with fixed length
+            const maxTimelinePoints = 20;
             const timestamp = new Date(detection.timestamp);
             const timeStr = timestamp.toLocaleTimeString();
             
-            if (detectionStats.timeline.labels.length > 20) {
-                detectionStats.timeline.labels.shift();
-                detectionStats.timeline.data.shift();
-            }
-            
             detectionStats.timeline.labels.push(timeStr);
             detectionStats.timeline.data.push(1);
+            
+            // Keep only the last 20 points
+            if (detectionStats.timeline.labels.length > maxTimelinePoints) {
+                detectionStats.timeline.labels = detectionStats.timeline.labels.slice(-maxTimelinePoints);
+                detectionStats.timeline.data = detectionStats.timeline.data.slice(-maxTimelinePoints);
+            }
 
             updateDetectionDisplay();
-            addLogEntry('detection', `Detected ${detection.type} with ${confidence.toFixed(1)}% confidence at ${detection.camera}`);
+            addLogEntry('detection', `Detected ${detection.type} with ${(detection.confidence * 100).toFixed(1)}% confidence at ${detection.camera}`);
         }
 
         function updateDetectionDisplay() {
@@ -1160,6 +1164,48 @@
 
         // Add initial log entry
         addLogEntry('info', 'System initialized and ready for detection');
+
+        // Modify the recent detections update to maintain fixed length
+        function updateRecentDetections(detection) {
+            const container = document.getElementById('recent-detections');
+            const maxDetections = 10;
+            
+            // Add new detection
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-lg p-4 shadow-sm';
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">${detection.type}</p>
+                        <p class="text-sm text-gray-500">${detection.camera}</p>
+                    </div>
+                    <p class="text-sm text-gray-400">${new Date(detection.timestamp).toLocaleTimeString()}</p>
+                </div>
+            `;
+            
+            container.insertBefore(div, container.firstChild);
+            
+            // Remove excess detections
+            while (container.children.length > maxDetections) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // Add cleanup for alerts
+        function updateAlerts(alerts) {
+            const container = document.getElementById('active-alerts');
+            const maxAlerts = 5;
+            
+            container.innerHTML = alerts
+                .slice(0, maxAlerts)
+                .map(alert => `
+                    <div class="p-2 bg-red-50 text-red-700 rounded">
+                        <p class="font-semibold">${alert.type}</p>
+                        <p class="text-sm">${alert.message}</p>
+                        <p class="text-xs text-gray-500">${new Date(alert.timestamp).toLocaleString()}</p>
+                    </div>
+                `).join('');
+        }
     </script>
 </body>
 </html> 
