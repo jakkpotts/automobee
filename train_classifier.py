@@ -7,6 +7,7 @@ from transformers import AutoImageProcessor, AutoModelForImageClassification
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
+import argparse
 
 class VehicleDataset(Dataset):
     def __init__(self, image_dir, processor):
@@ -36,7 +37,7 @@ class VehicleDataset(Dataset):
             'labels': torch.tensor(self.labels[idx])
         }
 
-def train_model():
+def train_model(resume_from_checkpoint=None):
     print("\nInitializing training...")
     
     # Initialize model and processor
@@ -84,90 +85,131 @@ def train_model():
     
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
     
-    # Training parameters
+    # Initialize training parameters and variables
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
     num_epochs = 10
+    start_epoch = 0  # Initialize start_epoch here
+    best_loss = float('inf')
     
+    # Initialize variables for interruption handling
+    epoch = 0
+    epoch_loss = float('inf')
+    epoch_accuracy = 0
+    total_loss = 0
+    correct_predictions = 0
+    total_predictions = 0
+
     # Create output directory
     Path("models").mkdir(exist_ok=True)
     
-    # Training metrics
-    best_loss = float('inf')
-    
+    # Then handle checkpoint loading if needed
+    if resume_from_checkpoint and os.path.exists(resume_from_checkpoint):
+        print("\n=== Resuming from checkpoint ===")
+        checkpoint = torch.load(resume_from_checkpoint)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1  # Only override if loading checkpoint
+        best_loss = checkpoint['loss']
+        print(f"Checkpoint details:")
+        print(f"- Resuming from epoch: {start_epoch}/{num_epochs}")
+        print(f"- Best loss achieved: {best_loss:.4f}")
+        print(f"- Previous accuracy: {checkpoint['accuracy']:.2f}%")
+        print("===============================\n")
+
     print("\nStarting training...")
-    # Training loop
     model.train()
-    for epoch in range(num_epochs):
-        total_loss = 0
-        correct_predictions = 0
-        total_predictions = 0
+    try:
+        for epoch in range(start_epoch, num_epochs):
+            total_loss = 0
+            correct_predictions = 0
+            total_predictions = 0
+            
+            # Create progress bar for this epoch
+            progress_bar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")
+            
+            for batch in progress_bar:
+                optimizer.zero_grad()
+                
+                inputs = {
+                    'pixel_values': batch['pixel_values'].to(device),
+                    'labels': batch['labels'].to(device)
+                }
+                
+                outputs = model(**inputs)
+                loss = outputs.loss
+                
+                # Calculate accuracy
+                predictions = torch.argmax(outputs.logits, dim=-1)
+                correct_predictions += (predictions == inputs['labels']).sum().item()
+                total_predictions += inputs['labels'].size(0)
+                
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+                
+                # Update progress bar
+                current_loss = total_loss / (progress_bar.n + 1)
+                current_accuracy = (correct_predictions / total_predictions) * 100
+                progress_bar.set_postfix({
+                    'loss': f'{current_loss:.4f}',
+                    'accuracy': f'{current_accuracy:.2f}%'
+                })
+            
+            # Epoch summary
+            epoch_loss = total_loss / len(dataloader)
+            epoch_accuracy = (correct_predictions / total_predictions) * 100
+            
+            print(f"\nEpoch {epoch+1} Summary:")
+            print(f"Average Loss: {epoch_loss:.4f}")
+            print(f"Accuracy: {epoch_accuracy:.2f}%")
+            
+            # Save best model
+            if epoch_loss < best_loss:
+                best_loss = epoch_loss
+                print("New best model! Saving checkpoint...")
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': best_loss,
+                    'accuracy': epoch_accuracy
+                }, "models/ford_f150_classifier_best.pth")
         
-        # Create progress bar for this epoch
-        progress_bar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")
+        # Save final model
+        print("\nSaving final model...")
+        torch.save({
+            'epoch': num_epochs,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': epoch_loss,
+            'accuracy': epoch_accuracy
+        }, "models/ford_f150_classifier.pth")
         
-        for batch in progress_bar:
-            optimizer.zero_grad()
-            
-            inputs = {
-                'pixel_values': batch['pixel_values'].to(device),
-                'labels': batch['labels'].to(device)
-            }
-            
-            outputs = model(**inputs)
-            loss = outputs.loss
-            
-            # Calculate accuracy
-            predictions = torch.argmax(outputs.logits, dim=-1)
-            correct_predictions += (predictions == inputs['labels']).sum().item()
-            total_predictions += inputs['labels'].size(0)
-            
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            
-            # Update progress bar
-            current_loss = total_loss / (progress_bar.n + 1)
-            current_accuracy = (correct_predictions / total_predictions) * 100
-            progress_bar.set_postfix({
-                'loss': f'{current_loss:.4f}',
-                'accuracy': f'{current_accuracy:.2f}%'
-            })
-        
-        # Epoch summary
-        epoch_loss = total_loss / len(dataloader)
-        epoch_accuracy = (correct_predictions / total_predictions) * 100
-        
-        print(f"\nEpoch {epoch+1} Summary:")
-        print(f"Average Loss: {epoch_loss:.4f}")
-        print(f"Accuracy: {epoch_accuracy:.2f}%")
-        
-        # Save best model
-        if epoch_loss < best_loss:
-            best_loss = epoch_loss
-            print("New best model! Saving checkpoint...")
+        # Save the processor config
+        processor.save_pretrained("models")
+        print("\nTraining completed successfully!")
+        print(f"Best loss achieved: {best_loss:.4f}")
+
+    except KeyboardInterrupt:
+        print("\n\nTraining interrupted! Saving checkpoint...")
+        try:
+            # Save interrupted model
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'loss': best_loss,
-                'accuracy': epoch_accuracy
-            }, "models/ford_f150_classifier_best.pth")
-    
-    # Save final model
-    print("\nSaving final model...")
-    torch.save({
-        'epoch': num_epochs,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'loss': epoch_loss,
-        'accuracy': epoch_accuracy
-    }, "models/ford_f150_classifier.pth")
-    
-    # Save the processor config
-    processor.save_pretrained("models")
-    print("\nTraining completed successfully!")
-    print(f"Best loss achieved: {best_loss:.4f}")
+                'loss': total_loss / max(1, len(dataloader)),  # Prevent division by zero
+                'accuracy': (correct_predictions / max(1, total_predictions)) * 100  # Prevent division by zero
+            }, "models/ford_f150_classifier_interrupted.pth")
+            
+            # Save the processor config
+            processor.save_pretrained("models")
+            print(f"Checkpoint saved at epoch {epoch+1}!")
+        except Exception as e:
+            print(f"\nError saving checkpoint: {str(e)}")
+        finally:
+            return
 
 if __name__ == "__main__":
     # Create the data directory structure if it doesn't exist

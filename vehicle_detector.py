@@ -115,22 +115,18 @@ class VehicleDetector:
         Initialize video stream connection with retry logic
         """
         try:
-            # Convert snapshot URL to stream URL
-            stream_url = url.replace('/snapshot', '/stream')
-            
-            # Try HLS stream first
-            hls_url = f"{stream_url}/playlist.m3u8"
-            cap = cv2.VideoCapture(hls_url)
+            # The URL should already be in the correct format from feed_selector
+            # Just try to open it directly first
+            cap = cv2.VideoCapture(url)
             
             if not cap.isOpened():
-                # Try RTSP stream as fallback
-                rtsp_url = f"rtsp://{stream_url}"
-                cap = cv2.VideoCapture(rtsp_url)
+                # Try with explicit FFMPEG backend as fallback
+                cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
                 
             if cap.isOpened():
                 return cap
             else:
-                self.logger.error(f"Failed to open stream: {stream_url}")
+                self.logger.error(f"Failed to open stream: {url}")
                 return None
             
         except Exception as e:
@@ -180,10 +176,57 @@ class VehicleDetector:
             self.camera_status[name] = CameraStatus(name=name)
         
         try:
+            # Emit camera processing start event
+            event_queue.put({
+                'type': 'camera_status',
+                'data': {
+                    'name': name,
+                    'status': 'processing',
+                    'timestamp': datetime.now().isoformat(),
+                    'location': camera.get('location', {}),
+                    'url': camera.get('url', '')
+                }
+            })
+            
+            # Update camera stats
+            self.stats['camera_stats'][name] = {
+                'status': 'processing',
+                'last_update': datetime.now().isoformat(),
+                'total_detections': self.camera_status[name].total_detections,
+                'consecutive_failures': self.camera_status[name].consecutive_failures,
+                'last_error': self.camera_status[name].last_error,
+                'location': camera.get('location', {}),
+                'url': camera.get('url', '')
+            }
+            
             # Get video stream
             cap = await self.get_camera_stream(camera['url'])
             if cap is None:
+                # Update stats for offline camera
+                self.stats['camera_stats'][name].update({
+                    'status': 'offline',
+                    'last_error': 'Failed to connect to stream'
+                })
+                self.stats['total_errors'] += 1
+                
+                # Emit camera offline event
+                event_queue.put({
+                    'type': 'camera_status',
+                    'data': {
+                        'name': name,
+                        'status': 'offline',
+                        'timestamp': datetime.now().isoformat(),
+                        'location': camera.get('location', {}),
+                        'url': camera.get('url', '')
+                    }
+                })
                 raise ValueError(f"Failed to get stream from camera {name}")
+            
+            # Update stats for online camera
+            self.stats['camera_stats'][name].update({
+                'status': 'online',
+                'uptime': self._calculate_uptime(name)
+            })
             
             # Process frames at specified interval
             last_process_time = 0
@@ -204,6 +247,18 @@ class VehicleDetector:
                     # Convert frame to PIL Image for processing
                     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     img = Image.fromarray(frame_rgb)
+                    
+                    # Emit processing status
+                    event_queue.put({
+                        'type': 'camera_status',
+                        'data': {
+                            'name': name,
+                            'status': 'analyzing',
+                            'timestamp': datetime.now().isoformat(),
+                            'location': camera.get('location', {}),
+                            'url': camera.get('url', '')
+                        }
+                    })
                     
                     # Run detection on frame
                     results = self.detector(img)
@@ -233,26 +288,63 @@ class VehicleDetector:
                                         'type': 'truck',
                                         'make': 'ford',
                                         'model': 'f-150',
-                                        'location': name
+                                        'location': name,
+                                        'camera_location': camera.get('location', {}),
+                                        'camera_url': camera.get('url', '')
                                     })
-                
+                    
                     if matches:
                         self.logger.info(f"Camera {name}: Found {len(matches)} matching vehicles")
                         await self._save_matches(name, img, matches)
+                        
+                        # Update detection counts
+                        self.camera_status[name].total_detections += len(matches)
+                        self.stats['total_detections'] += len(matches)
+                        self.stats['camera_stats'][name]['total_detections'] = self.camera_status[name].total_detections
                     
-                    # Update stats
+                    # Update camera status
                     self.camera_status[name].last_success = datetime.now()
                     self.camera_status[name].consecutive_failures = 0
-                    self.camera_status[name].total_detections += len(matches)
+                    
+                    # Update stats
+                    self.stats['camera_stats'][name].update({
+                        'status': 'online',
+                        'last_success': datetime.now().isoformat(),
+                        'consecutive_failures': 0,
+                        'uptime': self._calculate_uptime(name)
+                    })
                     
                     last_process_time = current_time
                 
-                    # Small sleep to prevent CPU overload
-                    await asyncio.sleep(0.1)
+                # Small sleep to prevent CPU overload
+                await asyncio.sleep(0.1)
+                    
         except Exception as e:
             self.camera_status[name].consecutive_failures += 1
             self.camera_status[name].last_error = str(e)
             self.stats['total_errors'] += 1
+            
+            # Update camera stats
+            self.stats['camera_stats'][name].update({
+                'status': 'error',
+                'last_error': str(e),
+                'consecutive_failures': self.camera_status[name].consecutive_failures,
+                'last_update': datetime.now().isoformat()
+            })
+            
+            # Emit error status
+            event_queue.put({
+                'type': 'camera_status',
+                'data': {
+                    'name': name,
+                    'status': 'error',
+                    'error': str(e),
+                    'timestamp': datetime.now().isoformat(),
+                    'location': camera.get('location', {}),
+                    'url': camera.get('url', '')
+                }
+            })
+            
             raise
         finally:
             if 'cap' in locals() and cap is not None:
@@ -299,7 +391,9 @@ class VehicleDetector:
                         'camera': camera_name,
                         'vehicle_type': match['type'],
                         'confidence': float(match['confidence']),
-                        'image': filename
+                        'image': filename,
+                        'make': match.get('make'),
+                        'model': match.get('model')
                     }
                     
                     meta_filename = f"matches/{camera_name}_{timestamp}_{idx}.json"
@@ -307,17 +401,15 @@ class VehicleDetector:
                         json.dump(metadata, f, indent=2)
                         
                     # Add to recent detections for dashboard
-                    dashboard_state.recent_detections.insert(0, {
-                        'timestamp': timestamp,
-                        'camera': camera_name,
-                        'image': filename,
-                        'type': match['type'],
-                        'confidence': float(match['confidence'])
-                    })
-                    
-                    # Keep only last 10 detections
-                    if len(dashboard_state.recent_detections) > 10:
-                        dashboard_state.recent_detections.pop()
+                    dashboard_state.add_detection(Detection(
+                        timestamp=timestamp,
+                        camera=camera_name,
+                        image=filename,
+                        type=match['type'],
+                        confidence=float(match['confidence']),
+                        make=match.get('make'),
+                        model=match.get('model')
+                    ))
                     
                     # Push update to dashboard
                     event_queue.put({
@@ -330,7 +422,7 @@ class VehicleDetector:
                     continue
                     
         except Exception as e:
-            self.logger.error(f"Error saving matches from {camera_name}: {e}") 
+            self.logger.error(f"Error saving matches from {camera_name}: {e}")
 
     async def _monitor_health(self):
         """Monitor system health and send alerts"""
@@ -415,8 +507,11 @@ class VehicleDetector:
         if total_time == 0:
             return 100.0
             
-        failure_time = status.consecutive_failures * self.sample_interval
-        return ((total_time - failure_time) / total_time) * 100 
+        # Calculate downtime based on consecutive failures and sample interval
+        downtime = status.consecutive_failures * self.sample_interval
+        uptime_percentage = ((total_time - downtime) / total_time) * 100
+        
+        return min(100.0, max(0.0, uptime_percentage))  # Ensure between 0-100%
 
     def _load_classifier(self):
         """

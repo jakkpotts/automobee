@@ -14,3 +14,7 @@ flask>=2.0.0
 transformers
 torch
 pillow
+opencv-python-headless
+python-ffmpeg
+streamlink
+ffmpeg

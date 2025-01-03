@@ -13,7 +13,7 @@ async def main():
 
     # Initialize components
     feed_selector = CameraFeedSelector()
-    feeds = feed_selector.fetch_available_feeds()
+    feeds = await feed_selector.fetch_available_feeds()
     
     # Select strategic cameras
     strategic_cameras = feed_selector.select_strategic_cameras()
