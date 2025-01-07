@@ -1,0 +1,26 @@
+{
+    "Camera-NW-01": {
+        "lat": 36.2159,
+        "lng": -115.2351,
+        "status": "active",
+        "url": "https://camera1.stream"
+    },
+    "Camera-NE-02": {
+        "lat": 36.2159,
+        "lng": -115.0351,
+        "status": "active",
+        "url": "https://camera2.stream"
+    },
+    "Camera-SW-03": {
+        "lat": 36.1159,
+        "lng": -115.2351,
+        "status": "error",
+        "url": "https://camera3.stream"
+    },
+    "Camera-SE-04": {
+        "lat": 36.1159,
+        "lng": -115.0351,
+        "status": "active",
+        "url": "https://camera4.stream"
+    }
+}

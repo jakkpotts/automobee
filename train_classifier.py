@@ -46,20 +46,23 @@ def train_model(resume_from_checkpoint=None):
     processor = AutoImageProcessor.from_pretrained(model_name)
     
     # Load model with ignore_mismatched_sizes=True
+    label2id = {
+        "ford_f150": 0,
+        "other_truck": 1,
+        "other_vehicle": 2
+    }
+    id2label = {
+        0: "ford_f150",
+        1: "other_truck", 
+        2: "other_vehicle"
+    }
+
     model = AutoModelForImageClassification.from_pretrained(
         model_name,
         num_labels=3,
-        ignore_mismatched_sizes=True,
-        id2label={
-            0: "ford_f150",
-            1: "other_truck",
-            2: "other_vehicle"
-        },
-        label2id={
-            "ford_f150": 0,
-            "other_truck": 1,
-            "other_vehicle": 2
-        }
+        id2label=id2label,
+        label2id=label2id,
+        ignore_mismatched_sizes=True
     )
     
     # Setup training

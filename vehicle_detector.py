@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Set
 import smtplib
 from email.message import EmailMessage
-from dashboard import event_queue, dashboard_state
+from dashboard import Alert, event_queue, dashboard_state, Detection
 from rate_limiter import RateLimiter
 from vehicle_classifier import VehicleMakeModelClassifier
 
@@ -31,7 +31,7 @@ class CameraStatus:
     last_error: Optional[str] = None
 
 class VehicleDetector:
-    def __init__(self, sample_interval: int = 30, max_retries: int = 3, retry_delay: int = 5, alert_email: Optional[str] = None, alert_threshold: int = 5):
+    def __init__(self, sample_interval: int = 50, max_retries: int = 3, retry_delay: int = 5, alert_email: Optional[str] = None, alert_threshold: int = 5):
         # Setup logging
         self.logger = self._setup_logging()
         
@@ -43,14 +43,20 @@ class VehicleDetector:
         )
         self.logger.info(f"Using device: {self.device}")
         
-        # Load models
+        # Initialize models
         try:
-            self.detector = YOLO('yolov8n.pt')
-            self.classifier = self._load_classifier()
-            if self.classifier is None:
-                self.logger.warning("Make/model detection will be disabled")
+            self.detector = YOLO('yolov8n.pt')  # Ensure correct initialization
+            self.logger.info("Initializing VehicleMakeModelClassifier")
+            self.make_model_classifier = VehicleMakeModelClassifier()
+            
+            # Verify classifier is properly initialized
+            if not self.make_model_classifier.is_initialized():
+                self.logger.error("Make/model classifier failed to initialize properly")
+                raise RuntimeError("Make/model classifier failed to initialize properly")
+                
+            self.logger.info("Successfully initialized YOLO detector and make/model classifier")
         except Exception as e:
-            self.logger.error(f"Failed to load models: {e}")
+            self.logger.error(f"Failed to load models: {e}", exc_info=True)
             raise
         
         self.sample_interval = sample_interval
@@ -58,13 +64,19 @@ class VehicleDetector:
         self.retry_delay = retry_delay
         self.last_sample_time = {}
         self.session: Optional[aiohttp.ClientSession] = None
-        self.vehicle_classes = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
+        self.vehicle_classes = {
+            2: 'car', 
+            3: 'motorcycle', 
+            5: 'bus', 
+            7: 'truck',
+            # Add any other relevant vehicle classes from YOLO
+        }
         
         # Create output directory
         Path('matches').mkdir(exist_ok=True)
         
         # Add rate limiter (max 10 requests per minute per camera)
-        self.rate_limiter = RateLimiter(calls=10, period=60)
+        self.rate_limiter = RateLimiter(calls=30, period=60)
         
         # Monitoring
         self.camera_status: Dict[str, CameraStatus] = {}
@@ -84,8 +96,14 @@ class VehicleDetector:
         if alert_email:
             asyncio.create_task(self._monitor_health())
         
-        # Initialize make/model classifier
-        self.make_model_classifier = VehicleMakeModelClassifier()
+        # Add stream health tracking
+        self.stream_health = {}
+        self.max_stream_failures = 3  # Maximum consecutive failures before switching servers
+        self.stream_retry_delay = 30  # Seconds to wait before retrying failed stream
+        self.server_alternatives = ['01', '02', '03', '04', '05']  # Available server numbers
+
+        # Add camera locations tracking
+        self.camera_locations = {}
 
     def _setup_logging(self) -> logging.Logger:
         """Setup logging with custom handler for dashboard"""
@@ -133,32 +151,125 @@ class VehicleDetector:
 
     async def get_camera_stream(self, url: str) -> Optional[cv2.VideoCapture]:
         """
-        Initialize video stream connection with retry logic
+        Initialize video stream connection with enhanced retry logic and server fallbacks
         """
-        try:
-            # The URL should already be in the correct format from feed_selector
-            # Just try to open it directly first
-            cap = cv2.VideoCapture(url)
-            
-            if not cap.isOpened():
-                # Try with explicit FFMPEG backend as fallback
-                cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
-                
-            if cap.isOpened():
-                return cap
-            else:
-                self.logger.error(f"Failed to open stream: {url}")
+        camera_id = url.split('/')[-2] if '/' in url else 'unknown'
+        
+        if camera_id not in self.stream_health:
+            self.stream_health[camera_id] = {
+                'failures': 0,
+                'last_success': None,
+                'current_server': None,
+                'tried_servers': set()
+            }
+        
+        health = self.stream_health[camera_id]
+        
+        # If we've had too many failures, wait before retrying
+        if health['failures'] >= self.max_stream_failures:
+            last_try = health.get('last_try', 0)
+            if time.time() - last_try < self.stream_retry_delay:
+                self.logger.debug(f"Waiting before retrying camera {camera_id}")
                 return None
             
+            # Reset failure count after delay
+            health['failures'] = 0
+            health['tried_servers'] = set()
+
+        try:
+            # Try original URL first if we haven't tried any servers yet
+            if not health['tried_servers']:
+                cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
+                if cap is not None and cap.isOpened():
+                    health['failures'] = 0
+                    health['last_success'] = time.time()
+                    health['current_server'] = None
+                    self.logger.info(f"Successfully connected to camera {camera_id}")
+                    return cap
+
+            # If original URL fails, try alternative servers
+            for server in self.server_alternatives:
+                if server in health['tried_servers']:
+                    continue
+                
+                try:
+                    # Construct alternative URL
+                    alt_url = self._get_alternative_url(url, server)
+                    self.logger.debug(f"Trying alternative server {server} for camera {camera_id}")
+                    
+                    cap = cv2.VideoCapture(alt_url, cv2.CAP_FFMPEG)
+                    if cap is not None and cap.isOpened():
+                        health['failures'] = 0
+                        health['last_success'] = time.time()
+                        health['current_server'] = server
+                        self.logger.info(f"Successfully connected to camera {camera_id} using server {server}")
+                        return cap
+                    
+                    health['tried_servers'].add(server)
+                    
+                except Exception as e:
+                    self.logger.debug(f"Failed to connect using server {server}: {e}")
+                    health['tried_servers'].add(server)
+                    continue
+
+            # If all attempts failed
+            health['failures'] += 1
+            health['last_try'] = time.time()
+            self.logger.error(
+                f"Failed to connect to camera {camera_id} after trying all servers. "
+                f"Failures: {health['failures']}"
+            )
+            return None
+            
         except Exception as e:
+            health['failures'] += 1
+            health['last_try'] = time.time()
             self.logger.error(f"Error connecting to stream {url}: {e}")
             return None
 
-    async def monitor_feeds(self, cameras: Dict[str, Dict], target_vehicle: Dict):
-        """
-        Monitor camera feeds with error handling and recovery
-        """
+    def _get_alternative_url(self, original_url: str, server: str) -> str:
+        """Generate alternative URL using different server number"""
         try:
+            # Extract components from original URL
+            if 'its.nv.gov' not in original_url:
+                return original_url
+                
+            parts = original_url.split('/')
+            camera_id = parts[-2]
+            
+            # Construct new URL with alternative server
+            new_url = f"https://d1wse{server}.its.nv.gov/vegasxcd{server}/{camera_id}_lvflirxcd{server}_public.stream/playlist.m3u8"
+            return new_url
+            
+        except Exception as e:
+            self.logger.error(f"Error generating alternative URL: {e}")
+            return original_url
+
+    async def monitor_feeds(self, cameras: Dict[str, Dict], target_vehicle: Dict):
+        """Monitor camera feeds with error handling and recovery"""
+        try:
+            # Initialize camera locations first
+            for name, camera in cameras.items():
+                # Handle different possible location formats
+                location = camera.get('location', {})
+                if isinstance(location, str):
+                    # Parse string location into dict if needed
+                    try:
+                        location = json.loads(location)
+                    except json.JSONDecodeError:
+                        location = {'lat': 0, 'lng': 0}  # Default location if parsing fails
+                        
+                self.camera_locations[name] = {
+                    'lat': location.get('lat', 0),
+                    'lng': location.get('lng', 0),
+                    'status': 'active',
+                    'url': camera.get('url', ''),
+                    'last_update': datetime.now().isoformat()
+                }
+            
+            # Update dashboard state with initial camera locations
+            dashboard_state.camera_locations = self.camera_locations
+
             await self.init_session()
             
             while True:
@@ -192,216 +303,223 @@ class VehicleDetector:
             await self.close_session()
 
     async def process_camera(self, name: str, camera: Dict, target_vehicle: Dict):
-        """Process a single camera feed with rate limiting and monitoring"""
-        if name not in self.camera_status:
-            self.camera_status[name] = CameraStatus(name=name)
-            self.logger.info(f"Initialized new camera: {name}")
-        
+        """Process a single camera feed with enhanced error handling"""
         try:
-            self.logger.info(f"Starting processing for camera {name}")
-            # Emit camera processing start event
-            event_queue.put({
-                'type': 'camera_status',
-                'data': {
-                    'name': name,
+            # Update camera status in locations
+            if name in self.camera_locations:
+                self.camera_locations[name].update({
                     'status': 'processing',
-                    'timestamp': datetime.now().isoformat(),
-                    'location': camera.get('location', {}),
-                    'url': camera.get('url', '')
-                }
-            })
-            
-            # Update camera stats
-            self.stats['camera_stats'][name] = {
-                'status': 'processing',
-                'last_update': datetime.now().isoformat(),
-                'total_detections': self.camera_status[name].total_detections,
-                'consecutive_failures': self.camera_status[name].consecutive_failures,
-                'last_error': self.camera_status[name].last_error,
-                'location': camera.get('location', {}),
-                'url': camera.get('url', '')
-            }
-            
-            # Get video stream
-            cap = await self.get_camera_stream(camera['url'])
-            if cap is None:
-                self.logger.error(f"Failed to connect to stream for camera {name}")
-                # Update stats for offline camera
-                self.stats['camera_stats'][name].update({
-                    'status': 'offline',
-                    'last_error': 'Failed to connect to stream'
+                    'last_update': datetime.now().isoformat()
                 })
-                self.stats['total_errors'] += 1
-                
-                # Emit camera offline event
+                # Update dashboard state
+                dashboard_state.camera_locations = self.camera_locations
+
+            # Get video stream with retries
+            cap = await self.get_camera_stream(camera['url'])
+            if not cap:
+                self.logger.warning(
+                    f"Camera {name} is currently unavailable. "
+                    f"Will retry in {self.stream_retry_delay} seconds"
+                )
+                return
+
+            if name not in self.camera_status:
+                self.camera_status[name] = CameraStatus(name=name)
+                self.logger.info(f"Initialized new camera: {name}")
+            
+            try:
+                self.logger.info(f"Starting processing for camera {name}")
+                # Emit camera processing start event
                 event_queue.put({
                     'type': 'camera_status',
                     'data': {
                         'name': name,
-                        'status': 'offline',
+                        'status': 'processing',
                         'timestamp': datetime.now().isoformat(),
                         'location': camera.get('location', {}),
                         'url': camera.get('url', '')
                     }
                 })
-                raise ValueError(f"Failed to get stream from camera {name}")
-            
-            self.logger.info(f"Successfully connected to camera {name}")
-            # Update stats for online camera
-            self.stats['camera_stats'][name].update({
-                'status': 'online',
-                'uptime': self._calculate_uptime(name)
-            })
-            
-            # Process frames at specified interval
-            last_process_time = 0
-            frames_processed = 0
-            total_detections = 0
-
-            while True:
-                current_time = time.time()
                 
-                if not await self.rate_limiter.acquire(name):
-                    await asyncio.sleep(1)
-                    continue
-                    
-                if current_time - last_process_time >= self.sample_interval:
-                    frames_processed += 1
-                    self.logger.debug(f"Processing frame {frames_processed} from camera {name}")
-
-                    ret, frame = cap.read()
-                    if not ret:
-                        self.logger.error(f"Failed to read frame from camera {name}")
-                        raise ValueError("Failed to read frame")
-
-                    # Convert frame to PIL Image for processing
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    img = Image.fromarray(frame_rgb)
-                    
-                    # Emit processing status
-                    event_queue.put({
-                        'type': 'camera_status',
-                        'data': {
-                            'name': name,
-                            'status': 'analyzing',
-                            'timestamp': datetime.now().isoformat(),
-                            'location': camera.get('location', {}),
-                            'url': camera.get('url', '')
-                        }
-                    })
-                    
-                    # Run detection on frame
-                    results = self.detector(img)
-                    detections_this_frame = len(results[0].boxes.data.tolist())
-                    total_detections += detections_this_frame
-
-                    if detections_this_frame > 0:
-                        self.logger.info(
-                            f"Camera {name}: Found {detections_this_frame} potential vehicles "
-                            f"(Total: {total_detections})"
-                        )
-
-                    matches = []
-                    for det in results[0].boxes.data.tolist():
-                        x1, y1, x2, y2, conf, cls = det
-                        
-                        vehicle_type = self.vehicle_classes.get(int(cls), 'unknown')
-                        self.logger.debug(
-                            f"Detection on camera {name}: {vehicle_type} "
-                            f"with {conf*100:.1f}% confidence"
-                        )
-
-                        if int(cls) not in self.vehicle_classes:
-                            continue
-
-                        # For trucks, check if it's a Ford F-150
-                        if (target_vehicle['type'] == 'truck' and int(cls) == 7 and
-                            target_vehicle.get('make') == 'ford' and
-                            target_vehicle.get('model') == 'f-150'):
-                            
-                            vehicle_img = img.crop((int(x1), int(y1), int(x2), int(y2)))
-                            
-                            # Check if it's black and a Ford F-150
-                            if (not target_vehicle['color'] or 
-                                self._is_black_vehicle(vehicle_img)):
-                                
-                                if self.make_model_classifier.is_ford_f150(vehicle_img):
-                                    self.logger.info(
-                                        f"Found target vehicle (Ford F-150) on camera {name} "
-                                        f"with {conf*100:.1f}% confidence"
-                                    )
-                                    matches.append({
-                                        'bbox': (x1, y1, x2, y2),
-                                        'confidence': conf,
-                                        'type': 'truck',
-                                        'make': 'ford',
-                                        'model': 'f-150',
-                                        'location': name,
-                                        'camera_location': camera.get('location', {}),
-                                        'camera_url': camera.get('url', '')
-                                    })
-
-                    if matches:
-                        self.logger.info(
-                            f"Camera {name}: Confirmed {len(matches)} matching vehicles "
-                            f"(Total matches: {self.stats['total_detections'] + len(matches)})"
-                        )
-                        await self._save_matches(name, img, matches)
-                        
-                        # Update detection counts
-                        self.camera_status[name].total_detections += len(matches)
-                        self.stats['total_detections'] += len(matches)
-                        self.stats['camera_stats'][name]['total_detections'] = \
-                            self.camera_status[name].total_detections
-
-                    # Update processing stats
-                    event_queue.put({
-                        'type': 'processing_stats',
-                        'data': {
-                            'camera': name,
-                            'frames_processed': frames_processed,
-                            'total_detections': total_detections,
-                            'matches': len(matches),
-                            'timestamp': datetime.now().isoformat()
-                        }
-                    })
-
-                    last_process_time = current_time
-                
-                await asyncio.sleep(0.1)
-                    
-        except Exception as e:
-            self.logger.error(f"Error processing camera {name}: {str(e)}")
-            self.camera_status[name].consecutive_failures += 1
-            self.camera_status[name].last_error = str(e)
-            self.stats['total_errors'] += 1
-            
-            # Update camera stats
-            self.stats['camera_stats'][name].update({
-                'status': 'error',
-                'last_error': str(e),
-                'consecutive_failures': self.camera_status[name].consecutive_failures,
-                'last_update': datetime.now().isoformat()
-            })
-            
-            # Emit error status
-            event_queue.put({
-                'type': 'camera_status',
-                'data': {
-                    'name': name,
-                    'status': 'error',
-                    'error': str(e),
-                    'timestamp': datetime.now().isoformat(),
+                # Update camera stats
+                self.stats['camera_stats'][name] = {
+                    'status': 'processing',
+                    'last_update': datetime.now().isoformat(),
+                    'total_detections': self.camera_status[name].total_detections,
+                    'consecutive_failures': self.camera_status[name].consecutive_failures,
+                    'last_error': self.camera_status[name].last_error,
                     'location': camera.get('location', {}),
                     'url': camera.get('url', '')
                 }
-            })
+                
+                # Process frames at specified interval
+                last_process_time = 0
+                frames_processed = 0
+                total_detections = 0
+
+                while True:
+                    current_time = time.time()
+                    
+                    if not await self.rate_limiter.acquire(name):
+                        await asyncio.sleep(1)
+                        continue
+                        
+                    if current_time - last_process_time >= self.sample_interval:
+                        frames_processed += 1
+                        self.logger.debug(f"Processing frame {frames_processed} from camera {name}")
+
+                        ret, frame = cap.read()
+                        if not ret:
+                            self.logger.error(f"Failed to read frame from camera {name}")
+                            raise ValueError("Failed to read frame")
+
+                        # Convert frame to PIL Image for processing
+                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        img = Image.fromarray(frame_rgb)
+                        
+                        # Emit processing status
+                        event_queue.put({
+                            'type': 'camera_status',
+                            'data': {
+                                'name': name,
+                                'status': 'analyzing',
+                                'timestamp': datetime.now().isoformat(),
+                                'location': camera.get('location', {}),
+                                'url': camera.get('url', '')
+                            }
+                        })
+                        
+                        # Run detection on frame
+                        results = self.detector(img)
+                        detections_this_frame = len(results[0].boxes.data.tolist())
+                        total_detections += detections_this_frame
+
+                        if detections_this_frame > 0:
+                            print("\n" + "="*70)
+                            print(f"📸 Camera: {name}")
+                            print(f"🔍 Found {detections_this_frame} potential vehicles")
+                            print("="*70)
+
+                        # Initialize matches list ONCE before processing detections
+                        matches = []
+                        
+                        # Process each detection
+                        for det in results[0].boxes.data.tolist():
+                            x1, y1, x2, y2, conf, cls = det
+                            vehicle_type = self.vehicle_classes.get(int(cls), 'unknown')
+                            
+                            print(f"\n🚗 Vehicle Detection:")
+                            print(f"   Type: {vehicle_type}")
+                            print(f"   Confidence: {conf*100:.1f}%")
+                            
+                            if int(cls) in self.vehicle_classes:
+                                vehicle_img = img.crop((int(x1), int(y1), int(x2), int(y2)))
+                                classification = self.make_model_classifier.classify_vehicle(vehicle_img)
+                                
+                                if classification:
+                                    print(f"\n🔎 Make/Model Analysis:")
+                                    print(f"   Make: {classification['make']}")
+                                    print(f"   Model: {classification['model']}")
+                                    print(f"   Confidence: {classification['confidence']*100:.1f}%")
+                                    
+                                    # Check for Ford F-150 using the new classifier method
+                                    is_f150 = self.make_model_classifier.is_ford_f150(
+                                        vehicle_img, 
+                                        confidence_threshold=0.7
+                                    )
+                                    
+                                    if is_f150:
+                                        matches.append({
+                                            'bbox': (x1, y1, x2, y2),
+                                            'confidence': classification['confidence'],
+                                            'type': 'ford_f150',
+                                            'location': name,
+                                            'camera_location': camera.get('location', {}),
+                                            'camera_url': camera.get('url', ''),
+                                            'make': classification['make'],
+                                            'model': classification['model']
+                                        })
+
+                        if matches:
+                            self.logger.info(
+                                f"\n=== Match Summary ===\n"
+                                f"Camera: {name}\n"
+                                f"Total Matches: {len(matches)}\n"
+                                f"Running Total: {self.stats['total_detections'] + len(matches)}\n"
+                                f"===================="
+                            )
+                            await self._save_matches(name, img, matches)
+                            
+                            # Update detection counts
+                            self.camera_status[name].total_detections += len(matches)
+                            self.stats['total_detections'] += len(matches)
+                            self.stats['camera_stats'][name]['total_detections'] = \
+                                self.camera_status[name].total_detections
+
+                        # Update processing stats
+                        event_queue.put({
+                            'type': 'processing_stats',
+                            'data': {
+                                'camera': name,
+                                'frames_processed': frames_processed,
+                                'total_detections': total_detections,
+                                'matches': len(matches),
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+
+                        last_process_time = current_time
+                    
+                    await asyncio.sleep(0.1)
+                        
+            except Exception as e:
+                self.logger.error(f"Error processing camera {name}: {str(e)}")
+                self.camera_status[name].consecutive_failures += 1
+                self.camera_status[name].last_error = str(e)
+                self.stats['total_errors'] += 1
+                
+                # Update camera stats
+                self.stats['camera_stats'][name].update({
+                    'status': 'error',
+                    'last_error': str(e),
+                    'consecutive_failures': self.camera_status[name].consecutive_failures,
+                    'last_update': datetime.now().isoformat()
+                })
+                
+                # Emit error status
+                event_queue.put({
+                    'type': 'camera_status',
+                    'data': {
+                        'name': name,
+                        'status': 'error',
+                        'error': str(e),
+                        'timestamp': datetime.now().isoformat(),
+                        'location': camera.get('location', {}),
+                        'url': camera.get('url', '')
+                    }
+                })
+
+                # Update camera status on error
+                if name in self.camera_locations:
+                    self.camera_locations[name].update({
+                        'status': 'error',
+                        'last_update': datetime.now().isoformat(),
+                        'error': str(e)
+                    })
+                    # Update dashboard state
+                    dashboard_state.camera_locations = self.camera_locations
+                
+                raise
+        except Exception as e:
+            self.logger.error(f"Error processing camera {name}: {e}")
+            # Update camera status
+            if name in self.camera_status:
+                self.camera_status[name].consecutive_failures += 1
+                self.camera_status[name].last_error = str(e)
             
-            raise
         finally:
-            if 'cap' in locals() and cap is not None:
+            if cap:
                 cap.release()
-                self.logger.info(f"Released camera feed: {name}")
 
     def _is_black_vehicle(self, img: Image.Image) -> bool:
         """Check if vehicle is black"""
@@ -428,57 +546,60 @@ class VehicleDetector:
         """Save matched vehicles with error handling"""
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+            safe_camera_name = camera_name.replace(' ', '_').replace('&', 'and')
+            safe_camera_name = ''.join(c for c in safe_camera_name if c.isalnum() or c in '_-')
+
+            # Convert the PIL image to a format compatible with OpenCV
+            img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
             for idx, match in enumerate(matches):
                 try:
-                    # Save cropped vehicle image
+                    # Get bounding box coordinates
                     x1, y1, x2, y2 = match['bbox']
-                    vehicle_img = img.crop((int(x1), int(y1), int(x2), int(y2)))
                     
-                    filename = f"matches/{camera_name}_{timestamp}_{idx}.jpg"
-                    vehicle_img.save(filename)
-                    
+                    # Draw the bounding box on the original image
+                    cv2.rectangle(img_cv, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)  # Green box
+
+                    # Save the modified image with bounding box
+                    filename = f"matches/{safe_camera_name}_{timestamp}_{idx}.jpg"
+                    cv2.imwrite(filename, img_cv)
+
                     # Save match metadata
                     metadata = {
                         'timestamp': timestamp,
-                        'camera': camera_name,
+                        'camera': camera_name,  # Keep original camera name in metadata
                         'vehicle_type': match['type'],
                         'confidence': float(match['confidence']),
-                        'image': filename,
+                        'image': f"{safe_camera_name}_{timestamp}_{idx}.jpg",  # Use safe filename
                         'make': match.get('make'),
                         'model': match.get('model')
                     }
-                    
-                    meta_filename = f"matches/{camera_name}_{timestamp}_{idx}.json"
+
+                    meta_filename = f"matches/{safe_camera_name}_{timestamp}_{idx}.json"
                     with open(meta_filename, 'w') as f:
                         json.dump(metadata, f, indent=2)
-                        
+
                     # Add to recent detections for dashboard
                     dashboard_state.add_detection(Detection(
                         timestamp=timestamp,
                         camera=camera_name,
-                        image=filename,
+                        image=f"{safe_camera_name}_{timestamp}_{idx}.jpg",
                         type=match['type'],
                         confidence=float(match['confidence']),
                         make=match.get('make'),
                         model=match.get('model')
                     ))
-                    
-                    # Push update to dashboard
+
                     event_queue.put({
                         'type': 'detection',
                         'data': metadata
                     })
+                    self.logger.info(f"Pushed detection to dashboard: {metadata}")
 
-                    self.logger.info(
-                        f"Saved detection {idx+1}/{len(matches)} from camera {camera_name}: "
-                        f"{match['type']} ({match.get('make', 'unknown')} {match.get('model', '')})"
-                    )
-                        
                 except Exception as e:
                     self.logger.error(f"Error saving match {idx} from {camera_name}: {e}")
                     continue
-                    
+
         except Exception as e:
             self.logger.error(f"Error saving matches from {camera_name}: {e}")
 
@@ -504,65 +625,96 @@ class VehicleDetector:
                 f"{self.stats['total_detections']} total detections"
             )
 
+            # System-wide health alert if too many cameras are down
+            if active_cameras < total_cameras * 0.7:  # Less than 70% cameras active
+                await self._send_alert(
+                    "System Health Warning",
+                    f"Only {active_cameras}/{total_cameras} cameras are active"
+                )
+
             for name, status in self.camera_status.items():
                 # Alert on consecutive failures
                 if (status.consecutive_failures >= self.alert_threshold and 
                     name not in self.alerted_cameras):
-                    self.logger.warning(
-                        f"Camera {name} has failed {status.consecutive_failures} times. "
-                        f"Last error: {status.last_error}"
-                    )
                     await self._send_alert(
-                        f"Camera {name} has failed {status.consecutive_failures} times",
+                        f"Camera Failure: {name}",
+                        f"Failed {status.consecutive_failures} times consecutively.\n"
                         f"Last error: {status.last_error}\n"
                         f"Last success: {status.last_success}"
                     )
                     self.alerted_cameras.add(name)
+                    
+                    # Add to dashboard active alerts
+                    dashboard_state.add_alert(Alert(
+                        type='camera_failure',
+                        message=f"Camera {name} has failed {status.consecutive_failures} times",
+                        timestamp=datetime.now().isoformat(),
+                        camera=name
+                    ))
                 
-                # Clear alert if camera recovers
+                # Recovery alert
                 elif status.consecutive_failures == 0 and name in self.alerted_cameras:
-                    self.logger.info(f"Camera {name} has recovered")
                     await self._send_alert(
-                        f"Camera {name} has recovered",
-                        f"Camera is now functioning normally"
+                        f"Camera Recovery: {name}",
+                        "Camera has recovered and is functioning normally"
                     )
                     self.alerted_cameras.remove(name)
+                    
+                    # Clear alert from dashboard
+                    dashboard_state.clear_alert(name)
 
-                if status.consecutive_failures >= self.alert_threshold:
-                    alert = {
-                        'camera': name,
-                        'type': 'error',
-                        'message': f"Camera {name} has failed {status.consecutive_failures} times"
+                # Update dashboard with camera status
+                event_queue.put({
+                    'type': 'camera_status',
+                    'data': {
+                        'name': name,
+                        'status': 'error' if status.consecutive_failures > 0 else 'active',
+                        'failures': status.consecutive_failures,
+                        'last_error': status.last_error,
+                        'last_success': status.last_success,
+                        'total_detections': status.total_detections,
+                        'timestamp': datetime.now().isoformat()
                     }
-                    dashboard_state.active_alerts.append(alert)
-                    event_queue.put({
-                        'type': 'alert',
-                        'data': alert
-                    })
+                })
 
         except Exception as e:
             self.logger.error(f"Error in health monitoring: {e}")
 
     async def _send_alert(self, subject: str, body: str):
-        """Send email alert"""
-        if not self.alert_email:
-            return
-            
+        """Send alert to console and dashboard"""
         try:
-            msg = EmailMessage()
-            msg.set_content(body)
-            msg['Subject'] = f"Vehicle Detection Alert: {subject}"
-            msg['From'] = "vehicle.detector@yourdomain.com"
-            msg['To'] = self.alert_email
+            # Format alert message
+            timestamp = datetime.now().isoformat()
+            alert_msg = f"\n[ALERT] {subject}\n{body}\nTimestamp: {timestamp}\n"
             
-            # Configure your SMTP settings
-            with smtplib.SMTP('smtp.yourdomain.com', 587) as server:
-                server.starttls()
-                server.login('username', 'password')
-                server.send_message(msg)
-                
+            # Print to console
+            print(alert_msg)
+            self.logger.warning(alert_msg)  # Also log it
+            
+            # Create alert for dashboard
+            alert = {
+                'type': 'system_alert',
+                'message': f"{subject}: {body}",
+                'timestamp': timestamp,
+                'severity': 'warning'
+            }
+            
+            # Push to dashboard via event queue
+            event_queue.put({
+                'type': 'alert',
+                'data': alert
+            })
+            
+            # Add to dashboard state
+            dashboard_state.add_alert(Alert(
+                type='system_alert',
+                message=f"{subject}: {body}",
+                timestamp=timestamp,
+                camera=None  # This is a system-wide alert
+            ))
+            
         except Exception as e:
-            self.logger.error(f"Failed to send alert: {e}")
+            self.logger.error(f"Failed to process alert: {e}")
 
     async def _save_stats(self):
         """Save monitoring stats to file"""
@@ -588,68 +740,3 @@ class VehicleDetector:
         uptime_percentage = ((total_time - downtime) / total_time) * 100
         
         return min(100.0, max(0.0, uptime_percentage))  # Ensure between 0-100%
-
-    def _load_classifier(self):
-        """
-        Load the make/model classifier model
-        Using EfficientNet as it's good for fine-grained classification
-        """
-        try:
-            model = timm.create_model('efficientnet_b0', pretrained=True)
-            
-            # Modify final layer for binary classification (F-150 or not)
-            model.classifier = torch.nn.Linear(model.classifier.in_features, 2)
-            
-            # Load trained weights if available
-            model_path = Path('models/vehicle_classifier.pth')
-            if model_path.exists():
-                self.logger.info("Loading pre-trained make/model classifier")
-                checkpoint = torch.load(model_path, map_location=self.device)
-                model.load_state_dict(checkpoint['model_state_dict'])
-            else:
-                self.logger.warning(
-                    "No pre-trained make/model classifier found. "
-                    "Run train_classifier.py first for make/model detection."
-                )
-            
-            model = model.to(self.device)
-            model.eval()
-            return model
-            
-        except Exception as e:
-            self.logger.error(f"Failed to load make/model classifier: {e}")
-            return None 
-
-class RateLimiter:
-    def __init__(self, calls: int, period: int):
-        """
-        Initialize rate limiter
-        Args:
-            calls: Number of calls allowed per period
-            period: Time period in seconds
-        """
-        self.calls = calls
-        self.period = period
-        self.timestamps: Dict[str, List[datetime]] = {}
-
-    async def acquire(self, key: str) -> bool:
-        """
-        Check if we can make a request for the given key
-        Returns True if request is allowed, False otherwise
-        """
-        now = datetime.now()
-        cutoff = now - timedelta(seconds=self.period)
-        
-        # Initialize timestamps list for new keys
-        if key not in self.timestamps:
-            self.timestamps[key] = []
-        
-        # Remove old timestamps
-        self.timestamps[key] = [ts for ts in self.timestamps[key] if ts > cutoff]
-        
-        # Check if we can make another request
-        if len(self.timestamps[key]) < self.calls:
-            self.timestamps[key].append(now)
-            return True
-            
-        return False 

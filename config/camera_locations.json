@@ -1,42 +1,1817 @@
 {
-    "I-15 @ Sahara": {
-        "lat": 36.1435,
-        "lng": -115.1892,
-        "name": "I-15 @ Sahara Ave"
+    "Airport Connector Grier (Tunnel)": {
+        "lat": 36.07079,
+        "lng": -115.14645,
+        "name": "Airport Connector Grier (Tunnel)"
     },
-    "I-15 @ Flamingo": {
-        "lat": 36.1147,
-        "lng": -115.1892,
-        "name": "I-15 @ Flamingo Rd"
+    "Airport Connector NB Grier": {
+        "lat": 36.06995,
+        "lng": -115.14648,
+        "name": "Airport Connector NB Grier"
     },
-    "Las Vegas Blvd @ Tropicana": {
-        "lat": 36.1000,
-        "lng": -115.1717,
-        "name": "Las Vegas Blvd @ Tropicana Ave"
+    "Ann Rd & CC 215 SB Ramp": {
+        "lat": 36.26123,
+        "lng": -115.3283,
+        "name": "Ann Rd & CC 215 SB Ramp"
     },
-    "US 95 @ Charleston": {
-        "lat": 36.1589,
-        "lng": -115.1637,
-        "name": "US 95 @ Charleston Blvd"
+    "Ann Rd & Commerce St": {
+        "lat": 36.26138,
+        "lng": -115.14415,
+        "name": "Ann Rd & Commerce St"
     },
-    "I-215 @ Airport": {
-        "lat": 36.0800,
-        "lng": -115.1522,
-        "name": "I-215 @ McCarran Airport"
+    "Bermuda & George Crockett": {
+        "lat": 36.0611,
+        "lng": -115.1545,
+        "name": "Bermuda & George Crockett"
     },
-    "I-515 @ Charleston": {
-        "lat": 36.1589,
-        "lng": -115.1200,
-        "name": "I-515 @ Charleston Blvd"
+    "Blue DIamond Rd & Rainbow Blvd": {
+        "lat": 36.02222,
+        "lng": -115.24378,
+        "name": "Blue DIamond Rd & Rainbow Blvd"
     },
-    "Boulder Hwy @ Flamingo": {
-        "lat": 36.1147,
-        "lng": -115.0892,
-        "name": "Boulder Hwy @ Flamingo Rd"
+    "Blue Diamond Rd & Buffalo Dr": {
+        "lat": 36.01995,
+        "lng": -115.26145,
+        "name": "Blue Diamond Rd & Buffalo Dr"
     },
-    "Lake Mead Blvd @ Civic Center": {
-        "lat": 36.1972,
-        "lng": -115.1175,
-        "name": "Lake Mead Blvd @ Civic Center Dr"
+    "Blue Diamond Rd & Cimarron Rd": {
+        "lat": 36.02008,
+        "lng": -115.27039,
+        "name": "Blue Diamond Rd & Cimarron Rd"
+    },
+    "Blue Diamond Rd & Decatur Blvd": {
+        "lat": 36.03209,
+        "lng": -115.20818,
+        "name": "Blue Diamond Rd & Decatur Blvd"
+    },
+    "Blue Diamond Rd & Durango Rd": {
+        "lat": 36.02015,
+        "lng": -115.27902,
+        "name": "Blue Diamond Rd & Durango Rd"
+    },
+    "Blue Diamond Rd & El Capitan Wy": {
+        "lat": 36.0206,
+        "lng": -115.28876,
+        "name": "Blue Diamond Rd & El Capitan Wy"
+    },
+    "Blue Diamond Rd & Fort Apache Rd": {
+        "lat": 36.02034,
+        "lng": -115.29811,
+        "name": "Blue Diamond Rd & Fort Apache Rd"
+    },
+    "Blue Diamond Rd & I-15 SB Ramp": {
+        "lat": 36.04325,
+        "lng": -115.18155,
+        "name": "Blue Diamond Rd & I-15 SB Ramp"
+    },
+    "Blue Diamond Rd & Jones Blvd": {
+        "lat": 36.02529,
+        "lng": -115.22588,
+        "name": "Blue Diamond Rd & Jones Blvd"
+    },
+    "Blue Diamond Rd & Valley View Blvd": {
+        "lat": 36.0401,
+        "lng": -115.19041,
+        "name": "Blue Diamond Rd & Valley View Blvd"
+    },
+    "Boulder Hwy & Desert Inn Rd-Lamb Blvd": {
+        "lat": 36.12987,
+        "lng": -115.08396,
+        "name": "Boulder Hwy & Desert Inn Rd-Lamb Blvd"
+    },
+    "Boulder Hwy & Flamingo Blvd": {
+        "lat": 36.11483,
+        "lng": -115.06663,
+        "name": "Boulder Hwy & Flamingo Blvd"
+    },
+    "Boulder Hwy & Horizon Dr-RacetrackRd": {
+        "lat": 36.01427,
+        "lng": -114.95354,
+        "name": "Boulder Hwy & Horizon Dr-RacetrackRd"
+    },
+    "Boulder Hwy & Lake Mead Pkwy": {
+        "lat": 36.03965,
+        "lng": -114.98167,
+        "name": "Boulder Hwy & Lake Mead Pkwy"
+    },
+    "Boulder Hwy & Major Ave": {
+        "lat": 36.02987,
+        "lng": -114.97116,
+        "name": "Boulder Hwy & Major Ave"
+    },
+    "Boulder Hwy & Sunset Rd": {
+        "lat": 36.06577,
+        "lng": -115.01138,
+        "name": "Boulder Hwy & Sunset Rd"
+    },
+    "Boulder Hwy & Tropicana Ave": {
+        "lat": 36.10081,
+        "lng": -115.0508,
+        "name": "Boulder Hwy & Tropicana Ave"
+    },
+    "Boulder Hwy & US 95 NB Ramp": {
+        "lat": 36.13487,
+        "lng": -115.08962,
+        "name": "Boulder Hwy & US 95 NB Ramp"
+    },
+    "Boulder Hwy & US 95 SB Ramp": {
+        "lat": 36.13683,
+        "lng": -115.09138,
+        "name": "Boulder Hwy & US 95 SB Ramp"
+    },
+    "Boulder Hwy & Warm Springs Rd": {
+        "lat": 36.05079,
+        "lng": -114.99423,
+        "name": "Boulder Hwy & Warm Springs Rd"
+    },
+    "Buffalo Dr & CC 215 EB Ramp": {
+        "lat": 36.06506,
+        "lng": -115.26065,
+        "name": "Buffalo Dr & CC 215 EB Ramp"
+    },
+    "Buffalo Dr & South CC 215 WB Ramp": {
+        "lat": 36.06717,
+        "lng": -115.26064,
+        "name": "Buffalo Dr & South CC 215 WB Ramp"
+    },
+    "Buffalo Dr & Summerlin  Pkwy WB Ramp": {
+        "lat": 36.17976,
+        "lng": -115.2597,
+        "name": "Buffalo Dr & Summerlin  Pkwy WB Ramp"
+    },
+    "Buffalo Dr & Summerlin Pkwy EB Ramp": {
+        "lat": 36.17812,
+        "lng": -115.25965,
+        "name": "Buffalo Dr & Summerlin Pkwy EB Ramp"
+    },
+    "CC-215 EB Aliante": {
+        "lat": 36.2893,
+        "lng": -115.1801,
+        "name": "CC-215 EB Aliante"
+    },
+    "CC-215 EB Aviary": {
+        "lat": 36.2814,
+        "lng": -115.1902,
+        "name": "CC-215 EB Aviary"
+    },
+    "CC-215 EB N Decatur": {
+        "lat": 36.2745,
+        "lng": -115.2069,
+        "name": "CC-215 EB N Decatur"
+    },
+    "CC-215 EB N Jones": {
+        "lat": 36.2747,
+        "lng": -115.2247,
+        "name": "CC-215 EB N Jones"
+    },
+    "CC-215 WB N Tenaya": {
+        "lat": 36.2763,
+        "lng": -115.2519,
+        "name": "CC-215 WB N Tenaya"
+    },
+    "Casino Center Blvd & Bonneville Ave": {
+        "lat": 36.16489,
+        "lng": -115.14809,
+        "name": "Casino Center Blvd & Bonneville Ave"
+    },
+    "Casino Center Blvd & Ogden Ave": {
+        "lat": 36.17195,
+        "lng": -115.14314,
+        "name": "Casino Center Blvd & Ogden Ave"
+    },
+    "Casino Dr & Laughlin Hwy SR 163": {
+        "lat": 35.17232,
+        "lng": -114.57137,
+        "name": "Casino Dr & Laughlin Hwy SR 163"
+    },
+    "Charleston Blvd & Buffalo Dr": {
+        "lat": 36.15896,
+        "lng": -115.26202,
+        "name": "Charleston Blvd & Buffalo Dr"
+    },
+    "Charleston Blvd & CC 215 NB Ramp": {
+        "lat": 36.15879,
+        "lng": -115.33663,
+        "name": "Charleston Blvd & CC 215 NB Ramp"
+    },
+    "Charleston Blvd & Durango Dr": {
+        "lat": 36.15923,
+        "lng": -115.28056,
+        "name": "Charleston Blvd & Durango Dr"
+    },
+    "Charleston Blvd & Fremont St": {
+        "lat": 36.15899,
+        "lng": -115.11711,
+        "name": "Charleston Blvd & Fremont St"
+    },
+    "Charleston Blvd & Ft Apache-Rampart": {
+        "lat": 36.15924,
+        "lng": -115.29167,
+        "name": "Charleston Blvd & Ft Apache-Rampart"
+    },
+    "Charleston Blvd & Grand Central Pkwy": {
+        "lat": 36.15918,
+        "lng": -115.15814,
+        "name": "Charleston Blvd & Grand Central Pkwy"
+    },
+    "Charleston Blvd & Hualapai Way": {
+        "lat": 36.15912,
+        "lng": -115.3143,
+        "name": "Charleston Blvd & Hualapai Way"
+    },
+    "Charleston Blvd & Jones Blvd": {
+        "lat": 36.15907,
+        "lng": -115.22369,
+        "name": "Charleston Blvd & Jones Blvd"
+    },
+    "Charleston Blvd & Pavilion Center Dr": {
+        "lat": 36.15924,
+        "lng": -115.33089,
+        "name": "Charleston Blvd & Pavilion Center Dr"
+    },
+    "Charleston Blvd & Rainbow Blvd": {
+        "lat": 36.15896,
+        "lng": -115.24397,
+        "name": "Charleston Blvd & Rainbow Blvd"
+    },
+    "Charleston Blvd & Rancho Dr": {
+        "lat": 36.15877,
+        "lng": -115.17263,
+        "name": "Charleston Blvd & Rancho Dr"
+    },
+    "Charleston Blvd & Town Center Dr": {
+        "lat": 36.15914,
+        "lng": -115.32291,
+        "name": "Charleston Blvd & Town Center Dr"
+    },
+    "Charleston Blvd & US 95 NB Ramp": {
+        "lat": 36.1587,
+        "lng": -115.09052,
+        "name": "Charleston Blvd & US 95 NB Ramp"
+    },
+    "Cheyenne Ave & Buffalo": {
+        "lat": 36.21812,
+        "lng": -115.26066,
+        "name": "Cheyenne Ave & Buffalo"
+    },
+    "Cheyenne Ave & CC 215 NB Ramp": {
+        "lat": 36.21927,
+        "lng": -115.32703,
+        "name": "Cheyenne Ave & CC 215 NB Ramp"
+    },
+    "Cheyenne Ave & Martin Luther King": {
+        "lat": 36.21753,
+        "lng": -115.16148,
+        "name": "Cheyenne Ave & Martin Luther King"
+    },
+    "Cheyenne Ave & Rampart-Durango": {
+        "lat": 36.21845,
+        "lng": -115.27898,
+        "name": "Cheyenne Ave & Rampart-Durango"
+    },
+    "Craig Rd & Commerce St": {
+        "lat": 36.23934,
+        "lng": -115.14351,
+        "name": "Craig Rd & Commerce St"
+    },
+    "Craig Rd & Decatur Blvd": {
+        "lat": 36.23903,
+        "lng": -115.20789,
+        "name": "Craig Rd & Decatur Blvd"
+    },
+    "Craig Rd & Losee Rd - Speed": {
+        "lat": 36.24008,
+        "lng": -115.11707,
+        "name": "Craig Rd & Losee Rd - Speed"
+    },
+    "Craig Rd & Martin Luther King Blvd": {
+        "lat": 36.23926,
+        "lng": -115.16167,
+        "name": "Craig Rd & Martin Luther King Blvd"
+    },
+    "D St & I-15 SB": {
+        "lat": 36.18013,
+        "lng": -115.14713,
+        "name": "D St & I-15 SB"
+    },
+    "Decatur Blvd & CC 215 EB Ramp": {
+        "lat": 36.0669,
+        "lng": -115.20784,
+        "name": "Decatur Blvd & CC 215 EB Ramp"
+    },
+    "Decatur Blvd & CC 215 WB Ramp": {
+        "lat": 36.06907,
+        "lng": -115.20784,
+        "name": "Decatur Blvd & CC 215 WB Ramp"
+    },
+    "Decatur Blvd & Russell Rd": {
+        "lat": 36.08654,
+        "lng": -115.20768,
+        "name": "Decatur Blvd & Russell Rd"
+    },
+    "Decatur Blvd & Sunset Rd": {
+        "lat": 36.07194,
+        "lng": -115.20764,
+        "name": "Decatur Blvd & Sunset Rd"
+    },
+    "Desert Inn Rd EB TUNNEL ENTRANCE": {
+        "lat": 36.13124,
+        "lng": -115.16653,
+        "name": "Desert Inn Rd EB TUNNEL ENTRANCE"
+    },
+    "Desert Inn Rd EB TUNNEL EXIT": {
+        "lat": 36.13057,
+        "lng": -115.16497,
+        "name": "Desert Inn Rd EB TUNNEL EXIT"
+    },
+    "Desert Inn Rd WB TUNNEL ENTRANCE": {
+        "lat": 36.13077,
+        "lng": -115.16479,
+        "name": "Desert Inn Rd WB TUNNEL ENTRANCE"
+    },
+    "Desert Inn Rd WB TUNNEL EXIT": {
+        "lat": 36.13146,
+        "lng": -115.16647,
+        "name": "Desert Inn Rd WB TUNNEL EXIT"
+    },
+    "Durango Dr & Ann Rd": {
+        "lat": 36.26317,
+        "lng": -115.27904,
+        "name": "Durango Dr & Ann Rd"
+    },
+    "Durango Dr & Lone Mountain Rd": {
+        "lat": 36.24818,
+        "lng": -115.27895,
+        "name": "Durango Dr & Lone Mountain Rd"
+    },
+    "Durango Dr & North CC 215 EB Ramp": {
+        "lat": 36.27898,
+        "lng": -115.2878,
+        "name": "Durango Dr & North CC 215 EB Ramp"
+    },
+    "Durango Dr & North CC 215 WB Ramp": {
+        "lat": 36.28085,
+        "lng": -115.28783,
+        "name": "Durango Dr & North CC 215 WB Ramp"
+    },
+    "Durango Dr & Oso Blanca Rd": {
+        "lat": 36.29527,
+        "lng": -115.28828,
+        "name": "Durango Dr & Oso Blanca Rd"
+    },
+    "Durango Dr & South CC 215 EB Ramp": {
+        "lat": 36.06517,
+        "lng": -115.27937,
+        "name": "Durango Dr & South CC 215 EB Ramp"
+    },
+    "Durango Dr & South CC215 WB Ramp": {
+        "lat": 36.06737,
+        "lng": -115.27939,
+        "name": "Durango Dr & South CC215 WB Ramp"
+    },
+    "Durango Dr & US 95 NB Ramp": {
+        "lat": 36.29934,
+        "lng": -115.28528,
+        "name": "Durango Dr & US 95 NB Ramp"
+    },
+    "Eastern Ave & CC 215 EB Ramp": {
+        "lat": 36.02265,
+        "lng": -115.11822,
+        "name": "Eastern Ave & CC 215 EB Ramp"
+    },
+    "Eastern Ave & Horizon Ridge Pkwy": {
+        "lat": 35.99923,
+        "lng": -115.10441,
+        "name": "Eastern Ave & Horizon Ridge Pkwy"
+    },
+    "Eastern Ave & Serene Ave": {
+        "lat": 36.02068,
+        "lng": -115.11836,
+        "name": "Eastern Ave & Serene Ave"
+    },
+    "Eastern Ave & Silverado Ranch Blvd": {
+        "lat": 36.01328,
+        "lng": -115.11857,
+        "name": "Eastern Ave & Silverado Ranch Blvd"
+    },
+    "Eastern Ave & South CC 215 WB Ramp": {
+        "lat": 36.02478,
+        "lng": -115.11819,
+        "name": "Eastern Ave & South CC 215 WB Ramp"
+    },
+    "Eastern Ave & St Rose Pkwy": {
+        "lat": 36.00694,
+        "lng": -115.11429,
+        "name": "Eastern Ave & St Rose Pkwy"
+    },
+    "Eastern Ave & Sunset Rd": {
+        "lat": 36.07145,
+        "lng": -115.11892,
+        "name": "Eastern Ave & Sunset Rd"
+    },
+    "Eastern Ave & US 95 NB Ramp": {
+        "lat": 36.16885,
+        "lng": -115.11627,
+        "name": "Eastern Ave & US 95 NB Ramp"
+    },
+    "Eastern Ave & US 95 SB Ramp": {
+        "lat": 36.1673,
+        "lng": -115.1158,
+        "name": "Eastern Ave & US 95 SB Ramp"
+    },
+    "Eastern Ave & Windmill Ln": {
+        "lat": 36.0421,
+        "lng": -115.11806,
+        "name": "Eastern Ave & Windmill Ln"
+    },
+    "Elkhorn Rd & Grand Montecito Pkwy": {
+        "lat": 36.29199,
+        "lng": -115.28417,
+        "name": "Elkhorn Rd & Grand Montecito Pkwy"
+    },
+    "Far Hills Ave & CC 215 NB": {
+        "lat": 36.18152,
+        "lng": -115.34085,
+        "name": "Far Hills Ave & CC 215 NB"
+    },
+    "Flamingo Rd & Buffalo Dr": {
+        "lat": 36.11493,
+        "lng": -115.26081,
+        "name": "Flamingo Rd & Buffalo Dr"
+    },
+    "Flamingo Rd & CC 215 NB Ramp": {
+        "lat": 36.11514,
+        "lng": -115.30127,
+        "name": "Flamingo Rd & CC 215 NB Ramp"
+    },
+    "Flamingo Rd & CC 215 SB Ramp": {
+        "lat": 36.11537,
+        "lng": -115.30421,
+        "name": "Flamingo Rd & CC 215 SB Ramp"
+    },
+    "Flamingo Rd & Decatur Blvd": {
+        "lat": 36.11573,
+        "lng": -115.20782,
+        "name": "Flamingo Rd & Decatur Blvd"
+    },
+    "Flamingo Rd & Eastern Ave": {
+        "lat": 36.11451,
+        "lng": -115.11948,
+        "name": "Flamingo Rd & Eastern Ave"
+    },
+    "Flamingo Rd & El Capitan Way": {
+        "lat": 36.11517,
+        "lng": -115.28782,
+        "name": "Flamingo Rd & El Capitan Way"
+    },
+    "Flamingo Rd & I-15 NB Ramp Arena": {
+        "lat": 36.11444,
+        "lng": -115.17971,
+        "name": "Flamingo Rd & I-15 NB Ramp Arena"
+    },
+    "Flamingo Rd & I-15 SB Ramp": {
+        "lat": 36.11416,
+        "lng": -115.1828,
+        "name": "Flamingo Rd & I-15 SB Ramp"
+    },
+    "Flamingo Rd & I-515 SB Ramp-Hazelcrest Dr": {
+        "lat": 36.11533,
+        "lng": -115.08553,
+        "name": "Flamingo Rd & I-515 SB Ramp-Hazelcrest Dr"
+    },
+    "Flamingo Rd & Jones Blvd": {
+        "lat": 36.11477,
+        "lng": -115.22513,
+        "name": "Flamingo Rd & Jones Blvd"
+    },
+    "Flamingo Rd & Koval SE - Sphere F1": {
+        "lat": 36.11436,
+        "lng": -115.16383,
+        "name": "Flamingo Rd & Koval SE - Sphere F1"
+    },
+    "Flamingo Rd & Las Vegas Blvd F1": {
+        "lat": 36.11454,
+        "lng": -115.17308,
+        "name": "Flamingo Rd & Las Vegas Blvd F1"
+    },
+    "Flamingo Rd & Maryland Pkwy": {
+        "lat": 36.11444,
+        "lng": -115.13752,
+        "name": "Flamingo Rd & Maryland Pkwy"
+    },
+    "Flamingo Rd & Paradise - Sphere F1": {
+        "lat": 36.11417,
+        "lng": -115.15376,
+        "name": "Flamingo Rd & Paradise - Sphere F1"
+    },
+    "Flamingo Rd & Pecos Rd": {
+        "lat": 36.11507,
+        "lng": -115.10069,
+        "name": "Flamingo Rd & Pecos Rd"
+    },
+    "Flamingo Rd & Valley View Blvd": {
+        "lat": 36.11588,
+        "lng": -115.18977,
+        "name": "Flamingo Rd & Valley View Blvd"
+    },
+    "Fort Apache Rd & CC 215 NB": {
+        "lat": 36.11096,
+        "lng": -115.29728,
+        "name": "Fort Apache Rd & CC 215 NB"
+    },
+    "Gibson Rd & SouthI-215 EB Ramp": {
+        "lat": 36.03139,
+        "lng": -115.02978,
+        "name": "Gibson Rd & SouthI-215 EB Ramp"
+    },
+    "Gibson Rd & SouthI-215 WB Ramp": {
+        "lat": 36.03246,
+        "lng": -115.02979,
+        "name": "Gibson Rd & SouthI-215 WB Ramp"
+    },
+    "Grand Central Pkwy & Bonneville-Alta": {
+        "lat": 36.16648,
+        "lng": -115.15552,
+        "name": "Grand Central Pkwy & Bonneville-Alta"
+    },
+    "Grand Central Pkwy & City Pkwy": {
+        "lat": 36.17359,
+        "lng": -115.14938,
+        "name": "Grand Central Pkwy & City Pkwy"
+    },
+    "Grand Central Pkwy & Premium Outlet Mall": {
+        "lat": 36.16165,
+        "lng": -115.15772,
+        "name": "Grand Central Pkwy & Premium Outlet Mall"
+    },
+    "Grand Central Pkwy & Symphony": {
+        "lat": 36.17035,
+        "lng": -115.15389,
+        "name": "Grand Central Pkwy & Symphony"
+    },
+    "Green Valley Pkwy & I-215 EB Beltway DLC": {
+        "lat": 36.02385,
+        "lng": -115.0849,
+        "name": "Green Valley Pkwy & I-215 EB Beltway DLC"
+    },
+    "Green Valley Pkwy & Warm Springs Rd": {
+        "lat": 36.05627,
+        "lng": -115.08428,
+        "name": "Green Valley Pkwy & Warm Springs Rd"
+    },
+    "Harmon Ave & Aria Wy-Vdara Wy-Cosmo": {
+        "lat": 36.10874,
+        "lng": -115.17767,
+        "name": "Harmon Ave & Aria Wy-Vdara Wy-Cosmo"
+    },
+    "Harmon Ave & Cosmopolitan-City Center-Cosmo F1": {
+        "lat": 36.1094,
+        "lng": -115.1752,
+        "name": "Harmon Ave & Cosmopolitan-City Center-Cosmo F1"
+    },
+    "I-11 NB Horizon": {
+        "lat": 36.0118,
+        "lng": -114.9885,
+        "name": "I-11 NB Horizon"
+    },
+    "I-11 NB Russell N": {
+        "lat": 36.08764,
+        "lng": -115.05837,
+        "name": "I-11 NB Russell N"
+    },
+    "I-11 NB S I-215": {
+        "lat": 36.03311,
+        "lng": -115.01344,
+        "name": "I-11 NB S I-215"
+    },
+    "I-11 NB S of College": {
+        "lat": 36.0014,
+        "lng": -114.9466,
+        "name": "I-11 NB S of College"
+    },
+    "I-11 NB Wagon Wheel": {
+        "lat": 35.9964,
+        "lng": -114.9326,
+        "name": "I-11 NB Wagon Wheel"
+    },
+    "I-11 NB mm1 DMS": {
+        "lat": 36.01546,
+        "lng": -114.74941,
+        "name": "I-11 NB mm1 DMS"
+    },
+    "I-11 SB 93 Interchange RR Pass": {
+        "lat": 35.96851,
+        "lng": -114.91245,
+        "name": "I-11 SB 93 Interchange RR Pass"
+    },
+    "I-11 SB College": {
+        "lat": 35.9987,
+        "lng": -114.9644,
+        "name": "I-11 SB College"
+    },
+    "I-11 SB Greenway": {
+        "lat": 35.9992,
+        "lng": -114.9766,
+        "name": "I-11 SB Greenway"
+    },
+    "I-11 SB Paradise Hills Dr": {
+        "lat": 35.9847,
+        "lng": -114.9215,
+        "name": "I-11 SB Paradise Hills Dr"
+    },
+    "I-11 mm 4": {
+        "lat": 35.99426,
+        "lng": -114.80007,
+        "name": "I-11 mm 4"
+    },
+    "I-15 NB 1 mile N of St Rose": {
+        "lat": 35.9741,
+        "lng": -115.1794,
+        "name": "I-15 NB 1 mile N of St Rose"
+    },
+    "I-15 NB Blue Diamond North": {
+        "lat": 36.04771,
+        "lng": -115.18034,
+        "name": "I-15 NB Blue Diamond North"
+    },
+    "I-15 NB Blue Diamond South": {
+        "lat": 36.0343,
+        "lng": -115.18043,
+        "name": "I-15 NB Blue Diamond South"
+    },
+    "I-15 NB Cactus": {
+        "lat": 36.0031,
+        "lng": -115.18,
+        "name": "I-15 NB Cactus"
+    },
+    "I-15 NB Carey": {
+        "lat": 36.20319,
+        "lng": -115.13412,
+        "name": "I-15 NB Carey"
+    },
+    "I-15 NB Craig Rd Speed": {
+        "lat": 36.23994,
+        "lng": -115.10147,
+        "name": "I-15 NB Craig Rd Speed"
+    },
+    "I-15 NB Lake Mead S": {
+        "lat": 36.19567,
+        "lng": -115.13847,
+        "name": "I-15 NB Lake Mead S"
+    },
+    "I-15 NB Las Vegas Blvd": {
+        "lat": 36.31,
+        "lng": -114.9532,
+        "name": "I-15 NB Las Vegas Blvd"
+    },
+    "I-15 NB Range Rd": {
+        "lat": 36.2679,
+        "lng": -115.0639,
+        "name": "I-15 NB Range Rd"
+    },
+    "I-15 NB S I-215 (dual)": {
+        "lat": 36.06285,
+        "lng": -115.18025,
+        "name": "I-15 NB S I-215 (dual)"
+    },
+    "I-15 NB Silverado Ranch": {
+        "lat": 36.02078,
+        "lng": -115.18027,
+        "name": "I-15 NB Silverado Ranch"
+    },
+    "I-15 NB Speedway Blvd (dual)": {
+        "lat": 36.28246,
+        "lng": -115.02571,
+        "name": "I-15 NB Speedway Blvd (dual)"
+    },
+    "I-15 NB St Rose": {
+        "lat": 35.9627,
+        "lng": -115.1808,
+        "name": "I-15 NB St Rose"
+    },
+    "I-15 NB St Rose S Mile 26": {
+        "lat": 35.9479,
+        "lng": -115.1822,
+        "name": "I-15 NB St Rose S Mile 26"
+    },
+    "I-15 NB Starr": {
+        "lat": 35.9905,
+        "lng": -115.1804,
+        "name": "I-15 NB Starr"
+    },
+    "I-15 NB Sunset": {
+        "lat": 36.07043,
+        "lng": -115.1804,
+        "name": "I-15 NB Sunset"
+    },
+    "I-15 NB Tropicana - Arena": {
+        "lat": 36.10076,
+        "lng": -115.17987,
+        "name": "I-15 NB Tropicana - Arena"
+    },
+    "I-15 NB Washington": {
+        "lat": 36.18077,
+        "lng": -115.1449,
+        "name": "I-15 NB Washington"
+    },
+    "I-15 NB mm56": {
+        "lat": 36.2953,
+        "lng": -114.9917,
+        "name": "I-15 NB mm56"
+    },
+    "I-15 SB Alexander": {
+        "lat": 36.2291,
+        "lng": -115.11623,
+        "name": "I-15 SB Alexander"
+    },
+    "I-15 SB Apex Weigh Station mm61": {
+        "lat": 36.3358,
+        "lng": -114.9198,
+        "name": "I-15 SB Apex Weigh Station mm61"
+    },
+    "I-15 SB Bonanza": {
+        "lat": 36.17609,
+        "lng": -115.15324,
+        "name": "I-15 SB Bonanza"
+    },
+    "I-15 SB Charleston On": {
+        "lat": 36.16268,
+        "lng": -115.16164,
+        "name": "I-15 SB Charleston On"
+    },
+    "I-15 SB Cheyenne": {
+        "lat": 36.21801,
+        "lng": -115.12426,
+        "name": "I-15 SB Cheyenne"
+    },
+    "I-15 SB Desert Inn": {
+        "lat": 36.12994,
+        "lng": -115.18143,
+        "name": "I-15 SB Desert Inn"
+    },
+    "I-15 SB Flamingo": {
+        "lat": 36.11115,
+        "lng": -115.18105,
+        "name": "I-15 SB Flamingo"
+    },
+    "I-15 SB I-515 Interchange (dual)": {
+        "lat": 36.17421,
+        "lng": -115.15566,
+        "name": "I-15 SB I-515 Interchange (dual)"
+    },
+    "I-15 SB Jean Mile 12": {
+        "lat": 35.7811,
+        "lng": -115.3285,
+        "name": "I-15 SB Jean Mile 12"
+    },
+    "I-15 SB Jean Mile 16": {
+        "lat": 35.824,
+        "lng": -115.297,
+        "name": "I-15 SB Jean Mile 16"
+    },
+    "I-15 SB Lake Mead N": {
+        "lat": 36.19612,
+        "lng": -115.13946,
+        "name": "I-15 SB Lake Mead N"
+    },
+    "I-15 SB Lamb": {
+        "lat": 36.2598,
+        "lng": -115.0783,
+        "name": "I-15 SB Lamb"
+    },
+    "I-15 SB Lone Mountain Rd": {
+        "lat": 36.2495,
+        "lng": -115.0913,
+        "name": "I-15 SB Lone Mountain Rd"
+    },
+    "I-15 SB N I-215 (dual)": {
+        "lat": 36.27187,
+        "lng": -115.05726,
+        "name": "I-15 SB N I-215 (dual)"
+    },
+    "I-15 SB Oakey": {
+        "lat": 36.15136,
+        "lng": -115.16545,
+        "name": "I-15 SB Oakey"
+    },
+    "I-15 SB Owens": {
+        "lat": 36.18822,
+        "lng": -115.14362,
+        "name": "I-15 SB Owens"
+    },
+    "I-15 SB Primm N Mile 5": {
+        "lat": 35.6737,
+        "lng": -115.3784,
+        "name": "I-15 SB Primm N Mile 5"
+    },
+    "I-15 SB S of Russell": {
+        "lat": 36.08244,
+        "lng": -115.18132,
+        "name": "I-15 SB S of Russell"
+    },
+    "I-15 SB Sahara South": {
+        "lat": 36.13879,
+        "lng": -115.17641,
+        "name": "I-15 SB Sahara South"
+    },
+    "I-15 SB Sloan S Mile 21": {
+        "lat": 35.8763,
+        "lng": -115.2373,
+        "name": "I-15 SB Sloan S Mile 21"
+    },
+    "I-15 SB Spring Mtn": {
+        "lat": 36.12193,
+        "lng": -115.181,
+        "name": "I-15 SB Spring Mtn"
+    },
+    "I-15 SB between Cheyenne and Carey": {
+        "lat": 36.2148,
+        "lng": -115.12679,
+        "name": "I-15 SB between Cheyenne and Carey"
+    },
+    "I-15 SB mm60 Apex": {
+        "lat": 36.33443,
+        "lng": -114.92005,
+        "name": "I-15 SB mm60 Apex"
+    },
+    "I-215 Centennial": {
+        "lat": 36.27721,
+        "lng": -115.32862,
+        "name": "I-215 Centennial"
+    },
+    "I-215 EB Eastern": {
+        "lat": 36.0236,
+        "lng": -115.1171,
+        "name": "I-215 EB Eastern"
+    },
+    "I-215 EB Gilespie": {
+        "lat": 36.0623,
+        "lng": -115.1663,
+        "name": "I-215 EB Gilespie"
+    },
+    "I-215 EB I-15 SB ramp": {
+        "lat": 36.0651,
+        "lng": -115.1863,
+        "name": "I-215 EB I-15 SB ramp"
+    },
+    "I-215 EB Pebble": {
+        "lat": 36.0275,
+        "lng": -115.1307,
+        "name": "I-215 EB Pebble"
+    },
+    "I-215 EB St Rose": {
+        "lat": 36.0229,
+        "lng": -115.0989,
+        "name": "I-215 EB St Rose"
+    },
+    "I-215 EB W of Las Vegas Blvd": {
+        "lat": 36.063,
+        "lng": -115.1747,
+        "name": "I-215 EB W of Las Vegas Blvd"
+    },
+    "I-215 Summerlin": {
+        "lat": 36.1915,
+        "lng": -115.3432,
+        "name": "I-215 Summerlin"
+    },
+    "I-215 Summerlin (dual)": {
+        "lat": 36.1914,
+        "lng": -115.3436,
+        "name": "I-215 Summerlin (dual)"
+    },
+    "I-215 WB Airport Connector E": {
+        "lat": 36.063,
+        "lng": -115.1481,
+        "name": "I-215 WB Airport Connector E"
+    },
+    "I-215 WB Airport Connector E (dual)": {
+        "lat": 36.064,
+        "lng": -115.1491,
+        "name": "I-215 WB Airport Connector E (dual)"
+    },
+    "I-215 WB E of Decatur": {
+        "lat": 36.0689,
+        "lng": -115.1998,
+        "name": "I-215 WB E of Decatur"
+    },
+    "I-215 WB Gibson": {
+        "lat": 36.0326,
+        "lng": -115.0275,
+        "name": "I-215 WB Gibson"
+    },
+    "I-215 WB Green Valley Pkwy DLC": {
+        "lat": 36.0254,
+        "lng": -115.0846,
+        "name": "I-215 WB Green Valley Pkwy DLC"
+    },
+    "I-215 WB W of Valle Verde": {
+        "lat": 36.027,
+        "lng": -115.0731,
+        "name": "I-215 WB W of Valle Verde"
+    },
+    "I-215 WB Warm Springs N": {
+        "lat": 36.0603,
+        "lng": -115.1432,
+        "name": "I-215 WB Warm Springs N"
+    },
+    "I-215 WB Wigwam": {
+        "lat": 36.0343,
+        "lng": -115.1323,
+        "name": "I-215 WB Wigwam"
+    },
+    "I-515 NB Auto Show": {
+        "lat": 36.04651,
+        "lng": -115.02248,
+        "name": "I-515 NB Auto Show"
+    },
+    "I-515 NB Flamingo": {
+        "lat": 36.1127,
+        "lng": -115.08219,
+        "name": "I-515 NB Flamingo"
+    },
+    "I-515 NB Galleria": {
+        "lat": 36.07201,
+        "lng": -115.03654,
+        "name": "I-515 NB Galleria"
+    },
+    "I-515 NB Main Street": {
+        "lat": 36.17579,
+        "lng": -115.14654,
+        "name": "I-515 NB Main Street"
+    },
+    "I-515 NB Pecos": {
+        "lat": 36.1673,
+        "lng": -115.09924,
+        "name": "I-515 NB Pecos"
+    },
+    "I-515 NB Russell S": {
+        "lat": 36.08056,
+        "lng": -115.0439,
+        "name": "I-515 NB Russell S"
+    },
+    "I-515 SB & Las Vegas Blvd Downtown": {
+        "lat": 36.17236,
+        "lng": -115.13521,
+        "name": "I-515 SB & Las Vegas Blvd Downtown"
+    },
+    "I-515 SB Boulder Highway": {
+        "lat": 36.13699,
+        "lng": -115.09076,
+        "name": "I-515 SB Boulder Highway"
+    },
+    "I-515 SB Charleston S": {
+        "lat": 36.15144,
+        "lng": -115.0918,
+        "name": "I-515 SB Charleston S"
+    },
+    "I-515 SB Desert Inn": {
+        "lat": 36.12997,
+        "lng": -115.08932,
+        "name": "I-515 SB Desert Inn"
+    },
+    "I-515 SB Duck Creek": {
+        "lat": 36.08943,
+        "lng": -115.06921,
+        "name": "I-515 SB Duck Creek"
+    },
+    "I-515 SB I-15 (Turtles)": {
+        "lat": 36.17385,
+        "lng": -115.15308,
+        "name": "I-515 SB I-15 (Turtles)"
+    },
+    "I-515 SB Main Street": {
+        "lat": 36.17535,
+        "lng": -115.14664,
+        "name": "I-515 SB Main Street"
+    },
+    "I-515 SB S I-215": {
+        "lat": 36.03586,
+        "lng": -115.01715,
+        "name": "I-515 SB S I-215"
+    },
+    "I-515 SB Sunset": {
+        "lat": 36.06344,
+        "lng": -115.03188,
+        "name": "I-515 SB Sunset"
+    },
+    "I-515 SB Tropicana": {
+        "lat": 36.09829,
+        "lng": -115.08104,
+        "name": "I-515 SB Tropicana"
+    },
+    "Jones Blvd & South CC 215 215 WB Ramp": {
+        "lat": 36.068,
+        "lng": -115.22447,
+        "name": "Jones Blvd & South CC 215 215 WB Ramp"
+    },
+    "Jones Blvd & South CC 215 EB Ramp": {
+        "lat": 36.06578,
+        "lng": -115.22457,
+        "name": "Jones Blvd & South CC 215 EB Ramp"
+    },
+    "Lake Mead Blvd & Buffalo Dr": {
+        "lat": 36.19633,
+        "lng": -115.26057,
+        "name": "Lake Mead Blvd & Buffalo Dr"
+    },
+    "Lake Mead Blvd & CC-215 NB": {
+        "lat": 36.20543,
+        "lng": -115.3407,
+        "name": "Lake Mead Blvd & CC-215 NB"
+    },
+    "Lake Mead Blvd & Civic Center Dr": {
+        "lat": 36.19609,
+        "lng": -115.11664,
+        "name": "Lake Mead Blvd & Civic Center Dr"
+    },
+    "Lake Mead Blvd & Hollywood Blvd": {
+        "lat": 36.19581,
+        "lng": -115.02647,
+        "name": "Lake Mead Blvd & Hollywood Blvd"
+    },
+    "Lake Mead Blvd & Pecos Rd": {
+        "lat": 36.19602,
+        "lng": -115.09866,
+        "name": "Lake Mead Blvd & Pecos Rd"
+    },
+    "Lake Mead Blvd & Rampart Blvd": {
+        "lat": 36.19991,
+        "lng": -115.28207,
+        "name": "Lake Mead Blvd & Rampart Blvd"
+    },
+    "Lake Mead Pkwy & Sunset Rd": {
+        "lat": 36.05515,
+        "lng": -114.96762,
+        "name": "Lake Mead Pkwy & Sunset Rd"
+    },
+    "Las Vegas Blvd & Bellagio F1": {
+        "lat": 36.11115,
+        "lng": -115.17332,
+        "name": "Las Vegas Blvd & Bellagio F1"
+    },
+    "Las Vegas Blvd & Bob Stupak": {
+        "lat": 36.14635,
+        "lng": -115.15547,
+        "name": "Las Vegas Blvd & Bob Stupak"
+    },
+    "Las Vegas Blvd & Cactus Ave": {
+        "lat": 35.99908,
+        "lng": -115.17236,
+        "name": "Las Vegas Blvd & Cactus Ave"
+    },
+    "Las Vegas Blvd & Caesars Dr F1": {
+        "lat": 36.11724,
+        "lng": -115.17312,
+        "name": "Las Vegas Blvd & Caesars Dr F1"
+    },
+    "Las Vegas Blvd & Charleston": {
+        "lat": 36.159,
+        "lng": -115.14722,
+        "name": "Las Vegas Blvd & Charleston"
+    },
+    "Las Vegas Blvd & Cheyenne Ave - Speed": {
+        "lat": 36.2179,
+        "lng": -115.09274,
+        "name": "Las Vegas Blvd & Cheyenne Ave - Speed"
+    },
+    "Las Vegas Blvd & CircusCircus-Elvis - Festival": {
+        "lat": 36.13692,
+        "lng": -115.16156,
+        "name": "Las Vegas Blvd & CircusCircus-Elvis - Festival"
+    },
+    "Las Vegas Blvd & City Center-Aria NE Arena F1": {
+        "lat": 36.10675,
+        "lng": -115.1727,
+        "name": "Las Vegas Blvd & City Center-Aria NE Arena F1"
+    },
+    "Las Vegas Blvd & Craig Rd - Speed": {
+        "lat": 36.24045,
+        "lng": -115.05499,
+        "name": "Las Vegas Blvd & Craig Rd - Speed"
+    },
+    "Las Vegas Blvd & Fashion Show F1": {
+        "lat": 36.12765,
+        "lng": -115.16815,
+        "name": "Las Vegas Blvd & Fashion Show F1"
+    },
+    "Las Vegas Blvd & Four Seasons Stadium": {
+        "lat": 36.08995,
+        "lng": -115.17262,
+        "name": "Las Vegas Blvd & Four Seasons Stadium"
+    },
+    "Las Vegas Blvd & Hacienda Stadium": {
+        "lat": 36.09375,
+        "lng": -115.17268,
+        "name": "Las Vegas Blvd & Hacienda Stadium"
+    },
+    "Las Vegas Blvd & Harmon Ave Median-Cosmo F1": {
+        "lat": 36.10908,
+        "lng": -115.173,
+        "name": "Las Vegas Blvd & Harmon Ave Median-Cosmo F1"
+    },
+    "Las Vegas Blvd & Harrahs-Mirage Exit F1": {
+        "lat": 36.11991,
+        "lng": -115.17231,
+        "name": "Las Vegas Blvd & Harrahs-Mirage Exit F1"
+    },
+    "Las Vegas Blvd & I-215 EB": {
+        "lat": 36.06269,
+        "lng": -115.17211,
+        "name": "Las Vegas Blvd & I-215 EB"
+    },
+    "Las Vegas Blvd & I-215 WB": {
+        "lat": 36.06467,
+        "lng": -115.17271,
+        "name": "Las Vegas Blvd & I-215 WB"
+    },
+    "Las Vegas Blvd & Lake Mead Blvd": {
+        "lat": 36.1957,
+        "lng": -115.12938,
+        "name": "Las Vegas Blvd & Lake Mead Blvd"
+    },
+    "Las Vegas Blvd & Lamb Blvd Speed": {
+        "lat": 36.22541,
+        "lng": -115.07991,
+        "name": "Las Vegas Blvd & Lamb Blvd Speed"
+    },
+    "Las Vegas Blvd & Liset Wy - Festival": {
+        "lat": 36.14187,
+        "lng": -115.15894,
+        "name": "Las Vegas Blvd & Liset Wy - Festival"
+    },
+    "Las Vegas Blvd & Luxor": {
+        "lat": 36.0972,
+        "lng": -115.17318,
+        "name": "Las Vegas Blvd & Luxor"
+    },
+    "Las Vegas Blvd & MGM_Park Ave  Arena": {
+        "lat": 36.10403,
+        "lng": -115.17266,
+        "name": "Las Vegas Blvd & MGM_Park Ave  Arena"
+    },
+    "Las Vegas Blvd & Mandalay Bay Stadium": {
+        "lat": 36.09337,
+        "lng": -115.17318,
+        "name": "Las Vegas Blvd & Mandalay Bay Stadium"
+    },
+    "Las Vegas Blvd & Mirage-Venetian F1": {
+        "lat": 36.12212,
+        "lng": -115.17128,
+        "name": "Las Vegas Blvd & Mirage-Venetian F1"
+    },
+    "Las Vegas Blvd & Paris F1": {
+        "lat": 36.1118,
+        "lng": -115.17269,
+        "name": "Las Vegas Blvd & Paris F1"
+    },
+    "Las Vegas Blvd & Park Ave S Median": {
+        "lat": 36.10376,
+        "lng": -115.17306,
+        "name": "Las Vegas Blvd & Park Ave S Median"
+    },
+    "Las Vegas Blvd & Pebble Rd": {
+        "lat": 36.02862,
+        "lng": -115.17207,
+        "name": "Las Vegas Blvd & Pebble Rd"
+    },
+    "Las Vegas Blvd & Planet Hollywood F1": {
+        "lat": 36.1111,
+        "lng": -115.17271,
+        "name": "Las Vegas Blvd & Planet Hollywood F1"
+    },
+    "Las Vegas Blvd & Range Rd - Speed": {
+        "lat": 36.24631,
+        "lng": -115.04483,
+        "name": "Las Vegas Blvd & Range Rd - Speed"
+    },
+    "Las Vegas Blvd & Reno": {
+        "lat": 36.09753,
+        "lng": -115.17268,
+        "name": "Las Vegas Blvd & Reno"
+    },
+    "Las Vegas Blvd & Russell Rd Stadium": {
+        "lat": 36.08636,
+        "lng": -115.17317,
+        "name": "Las Vegas Blvd & Russell Rd Stadium"
+    },
+    "Las Vegas Blvd & Silverado Ranch Blvd": {
+        "lat": 36.0136,
+        "lng": -115.17211,
+        "name": "Las Vegas Blvd & Silverado Ranch Blvd"
+    },
+    "Las Vegas Blvd & Sirens Cove Blvd-Palazzo F1": {
+        "lat": 36.12331,
+        "lng": -115.1711,
+        "name": "Las Vegas Blvd & Sirens Cove Blvd-Palazzo F1"
+    },
+    "Las Vegas Blvd & Spring Mountain - Sphere F1": {
+        "lat": 36.12564,
+        "lng": -115.16901,
+        "name": "Las Vegas Blvd & Spring Mountain - Sphere F1"
+    },
+    "Las Vegas Blvd & Sunset Rd": {
+        "lat": 36.07127,
+        "lng": -115.17217,
+        "name": "Las Vegas Blvd & Sunset Rd"
+    },
+    "Las Vegas Blvd & Warm Springs Rd": {
+        "lat": 36.05714,
+        "lng": -115.1721,
+        "name": "Las Vegas Blvd & Warm Springs Rd"
+    },
+    "Las Vegas Blvd & Washington Ave": {
+        "lat": 36.18102,
+        "lng": -115.13436,
+        "name": "Las Vegas Blvd & Washington Ave"
+    },
+    "Las Vegas Blvd & Welcome Sign": {
+        "lat": 36.08073,
+        "lng": -115.173,
+        "name": "Las Vegas Blvd & Welcome Sign"
+    },
+    "Las Vegas Blvd & Windmill-Blue Diamond": {
+        "lat": 36.04216,
+        "lng": -115.17263,
+        "name": "Las Vegas Blvd & Windmill-Blue Diamond"
+    },
+    "Las Vegas Blvd & Wynn Blvd-Cathedral Wy": {
+        "lat": 36.13112,
+        "lng": -115.16529,
+        "name": "Las Vegas Blvd & Wynn Blvd-Cathedral Wy"
+    },
+    "Las Vegas Blvd & Wynn F1": {
+        "lat": 36.12778,
+        "lng": -115.16753,
+        "name": "Las Vegas Blvd & Wynn F1"
+    },
+    "Lone Mountian Rd & CC 215 NB Ramp": {
+        "lat": 36.24783,
+        "lng": -115.31506,
+        "name": "Lone Mountian Rd & CC 215 NB Ramp"
+    },
+    "Martin Luther King Blvd & Lake Mead Blvd": {
+        "lat": 36.19553,
+        "lng": -115.16105,
+        "name": "Martin Luther King Blvd & Lake Mead Blvd"
+    },
+    "Nellis Blvd & Cheyenne Ave": {
+        "lat": 36.21852,
+        "lng": -115.06197,
+        "name": "Nellis Blvd & Cheyenne Ave"
+    },
+    "Nellis Blvd & Lake Mead Blvd": {
+        "lat": 36.19609,
+        "lng": -115.06195,
+        "name": "Nellis Blvd & Lake Mead Blvd"
+    },
+    "Paradise Rd & Convention Center Dr SE": {
+        "lat": 36.13216,
+        "lng": -115.15452,
+        "name": "Paradise Rd & Convention Center Dr SE"
+    },
+    "Pecos & I-215 WB Beltway": {
+        "lat": 36.02423,
+        "lng": -115.10064,
+        "name": "Pecos & I-215 WB Beltway"
+    },
+    "Rainbow Blvd & Desert Inn Rd": {
+        "lat": 36.12936,
+        "lng": -115.24272,
+        "name": "Rainbow Blvd & Desert Inn Rd"
+    },
+    "Rainbow Blvd & Flamingo Rd": {
+        "lat": 36.11481,
+        "lng": -115.24273,
+        "name": "Rainbow Blvd & Flamingo Rd"
+    },
+    "Rainbow Blvd & Oakey Blvd": {
+        "lat": 36.15151,
+        "lng": -115.24356,
+        "name": "Rainbow Blvd & Oakey Blvd"
+    },
+    "Rainbow Blvd & Russell Rd": {
+        "lat": 36.08537,
+        "lng": -115.24252,
+        "name": "Rainbow Blvd & Russell Rd"
+    },
+    "Rainbow Blvd & South CC 215 WB Ramp": {
+        "lat": 36.06758,
+        "lng": -115.24245,
+        "name": "Rainbow Blvd & South CC 215 WB Ramp"
+    },
+    "Rainbow Blvd & Spring Mountain Rd": {
+        "lat": 36.1256,
+        "lng": -115.2433,
+        "name": "Rainbow Blvd & Spring Mountain Rd"
+    },
+    "Rainbow Blvd & Warm Springs Rd": {
+        "lat": 36.05563,
+        "lng": -115.2433,
+        "name": "Rainbow Blvd & Warm Springs Rd"
+    },
+    "Rainbow Blvd & south CC 215 EB Ramp": {
+        "lat": 36.06538,
+        "lng": -115.24244,
+        "name": "Rainbow Blvd & south CC 215 EB Ramp"
+    },
+    "Rampart Blvd & Summerlin Pkwy EB": {
+        "lat": 36.17725,
+        "lng": -115.28699,
+        "name": "Rampart Blvd & Summerlin Pkwy EB"
+    },
+    "Rampart Blvd & Summerlin Pkwy WB": {
+        "lat": 36.17902,
+        "lng": -115.28746,
+        "name": "Rampart Blvd & Summerlin Pkwy WB"
+    },
+    "Rancho Dr & Bonanza Rd": {
+        "lat": 36.17748,
+        "lng": -115.17567,
+        "name": "Rancho Dr & Bonanza Rd"
+    },
+    "Rancho Dr & Cheyenne Ave": {
+        "lat": 36.21698,
+        "lng": -115.21221,
+        "name": "Rancho Dr & Cheyenne Ave"
+    },
+    "Rancho Dr & Craig Rd": {
+        "lat": 36.23941,
+        "lng": -115.23264,
+        "name": "Rancho Dr & Craig Rd"
+    },
+    "Russell Rd & CC 215 NB Ramp": {
+        "lat": 36.08521,
+        "lng": -115.28754,
+        "name": "Russell Rd & CC 215 NB Ramp"
+    },
+    "Russell Rd & CC 215 SB Ramp": {
+        "lat": 36.08519,
+        "lng": -115.29032,
+        "name": "Russell Rd & CC 215 SB Ramp"
+    },
+    "Russell Rd & Paradise Rd": {
+        "lat": 36.08928,
+        "lng": -115.14642,
+        "name": "Russell Rd & Paradise Rd"
+    },
+    "SEC Boulder Hwy & Russel Rd": {
+        "lat": 36.08474,
+        "lng": -115.03244,
+        "name": "SEC Boulder Hwy & Russel Rd"
+    },
+    "SR-158 NB Deer Creek": {
+        "lat": 36.32199,
+        "lng": -115.61975,
+        "name": "SR-158 NB Deer Creek"
+    },
+    "SR-160 E/O Pinion Dr": {
+        "lat": 36.01562,
+        "lng": -115.5024,
+        "name": "SR-160 E/O Pinion Dr"
+    },
+    "SR-160 W/O Cottonwood Valley Rd": {
+        "lat": 35.99876,
+        "lng": -115.44761,
+        "name": "SR-160 W/O Cottonwood Valley Rd"
+    },
+    "SR-376 North of Carver": {
+        "lat": 38.83085,
+        "lng": -117.18944,
+        "name": "SR-376 North of Carver"
+    },
+    "Sahara  Ave & Eastern Ave": {
+        "lat": 36.14412,
+        "lng": -115.11902,
+        "name": "Sahara  Ave & Eastern Ave"
+    },
+    "Sahara Ave & Boulder Hwy - Fremont": {
+        "lat": 36.14541,
+        "lng": -115.10151,
+        "name": "Sahara Ave & Boulder Hwy - Fremont"
+    },
+    "Sahara Ave & Buffalo Dr": {
+        "lat": 36.14389,
+        "lng": -115.26117,
+        "name": "Sahara Ave & Buffalo Dr"
+    },
+    "Sahara Ave & Burnham Ave": {
+        "lat": 36.14415,
+        "lng": -115.12338,
+        "name": "Sahara Ave & Burnham Ave"
+    },
+    "Sahara Ave & CC 215 NB": {
+        "lat": 36.14436,
+        "lng": -115.33578,
+        "name": "Sahara Ave & CC 215 NB"
+    },
+    "Sahara Ave & Cimarron Rd": {
+        "lat": 36.14409,
+        "lng": -115.26981,
+        "name": "Sahara Ave & Cimarron Rd"
+    },
+    "Sahara Ave & Decatur Blvd": {
+        "lat": 36.14476,
+        "lng": -115.20846,
+        "name": "Sahara Ave & Decatur Blvd"
+    },
+    "Sahara Ave & Durango Dr": {
+        "lat": 36.14434,
+        "lng": -115.27921,
+        "name": "Sahara Ave & Durango Dr"
+    },
+    "Sahara Ave & FoF402:H585rt Apache Rd": {
+        "lat": 36.14424,
+        "lng": -115.2979,
+        "name": "Sahara Ave & FoF402:H585rt Apache Rd"
+    },
+    "Sahara Ave & Grand Canyon Dr": {
+        "lat": 36.14426,
+        "lng": -115.30693,
+        "name": "Sahara Ave & Grand Canyon Dr"
+    },
+    "Sahara Ave & Hualapai Way": {
+        "lat": 36.14469,
+        "lng": -115.31525,
+        "name": "Sahara Ave & Hualapai Way"
+    },
+    "Sahara Ave & I-15 NB Ramp": {
+        "lat": 36.14446,
+        "lng": -115.17041,
+        "name": "Sahara Ave & I-15 NB Ramp"
+    },
+    "Sahara Ave & Jones Blvd": {
+        "lat": 36.14452,
+        "lng": -115.22553,
+        "name": "Sahara Ave & Jones Blvd"
+    },
+    "Sahara Ave & Las Vegas Blvd - Festival": {
+        "lat": 36.14384,
+        "lng": -115.1571,
+        "name": "Sahara Ave & Las Vegas Blvd - Festival"
+    },
+    "Sahara Ave & Maryland Pkwy": {
+        "lat": 36.14398,
+        "lng": -115.13725,
+        "name": "Sahara Ave & Maryland Pkwy"
+    },
+    "Sahara Ave & McLeod Dr": {
+        "lat": 36.14412,
+        "lng": -115.11008,
+        "name": "Sahara Ave & McLeod Dr"
+    },
+    "Sahara Ave & Paradise Rd - Festival": {
+        "lat": 36.14388,
+        "lng": -115.15459,
+        "name": "Sahara Ave & Paradise Rd - Festival"
+    },
+    "Sahara Ave & Rancho Dr": {
+        "lat": 36.1441,
+        "lng": -115.17313,
+        "name": "Sahara Ave & Rancho Dr"
+    },
+    "Sahara Ave & Teddy Dr-Paseo Del Prado": {
+        "lat": 36.14415,
+        "lng": -115.17745,
+        "name": "Sahara Ave & Teddy Dr-Paseo Del Prado"
+    },
+    "Sahara Ave & Tenaya Way": {
+        "lat": 36.14418,
+        "lng": -115.25175,
+        "name": "Sahara Ave & Tenaya Way"
+    },
+    "Sahara Ave & Valley View Blvd": {
+        "lat": 36.14425,
+        "lng": -115.19099,
+        "name": "Sahara Ave & Valley View Blvd"
+    },
+    "Sandhill Blvd & I-15": {
+        "lat": 36.81208,
+        "lng": -114.06374,
+        "name": "Sandhill Blvd & I-15"
+    },
+    "Sands Ave & Palazzo - Sphere F1": {
+        "lat": 36.12478,
+        "lng": -115.1667,
+        "name": "Sands Ave & Palazzo - Sphere F1"
+    },
+    "Silverado Ranch Blvd & I-15 SB Ramp": {
+        "lat": 36.01316,
+        "lng": -115.18118,
+        "name": "Silverado Ranch Blvd & I-15 SB Ramp"
+    },
+    "Spring Mountain Rd & Valley View Blvd": {
+        "lat": 36.12639,
+        "lng": -115.18994,
+        "name": "Spring Mountain Rd & Valley View Blvd"
+    },
+    "St Rose & I-215 EB Beltway": {
+        "lat": 36.02242,
+        "lng": -115.10031,
+        "name": "St Rose & I-215 EB Beltway"
+    },
+    "St Rose Pkwy & Amigo St": {
+        "lat": 35.9879,
+        "lng": -115.14056,
+        "name": "St Rose Pkwy & Amigo St"
+    },
+    "St Rose Pkwy & Bermuda": {
+        "lat": 35.97837,
+        "lng": -115.15516,
+        "name": "St Rose Pkwy & Bermuda"
+    },
+    "St Rose Pkwy & Coronado Center Dr": {
+        "lat": 36.01588,
+        "lng": -115.10171,
+        "name": "St Rose Pkwy & Coronado Center Dr"
+    },
+    "St Rose Pkwy & I-15": {
+        "lat": 35.96191,
+        "lng": -115.18235,
+        "name": "St Rose Pkwy & I-15"
+    },
+    "St Rose Pkwy & Maryland Pkwy": {
+        "lat": 35.99165,
+        "lng": -115.1366,
+        "name": "St Rose Pkwy & Maryland Pkwy"
+    },
+    "St Rose Pkwy & Raiders Way/Starr Ave": {
+        "lat": 35.98188,
+        "lng": -115.14893,
+        "name": "St Rose Pkwy & Raiders Way/Starr Ave"
+    },
+    "St Rose Pkwy & Seven Hills Dr/Spencer": {
+        "lat": 35.99858,
+        "lng": -115.12594,
+        "name": "St Rose Pkwy & Seven Hills Dr/Spencer"
+    },
+    "St. Rose Pkwy & Las Vegas Blvd": {
+        "lat": 35.9664,
+        "lng": -115.17262,
+        "name": "St. Rose Pkwy & Las Vegas Blvd"
+    },
+    "Stephanie St & South I- 215 EB Ramp": {
+        "lat": 36.02871,
+        "lng": -115.04695,
+        "name": "Stephanie St & South I- 215 EB Ramp"
+    },
+    "Stephanie St & Warm Springs Rd": {
+        "lat": 36.05598,
+        "lng": -115.04646,
+        "name": "Stephanie St & Warm Springs Rd"
+    },
+    "Summerlin Ctr & Pavilion Ctr": {
+        "lat": 36.15341,
+        "lng": -115.33097,
+        "name": "Summerlin Ctr & Pavilion Ctr"
+    },
+    "Summerlin Pkwy & CC-215 NB Ramp": {
+        "lat": 36.19183,
+        "lng": -115.34182,
+        "name": "Summerlin Pkwy & CC-215 NB Ramp"
+    },
+    "Summerlin Pkwy & Durango Dr EB Ramp": {
+        "lat": 36.1763,
+        "lng": -115.27842,
+        "name": "Summerlin Pkwy & Durango Dr EB Ramp"
+    },
+    "Summerlin Pkwy & Durango Dr WB Ramp": {
+        "lat": 36.17864,
+        "lng": -115.2785,
+        "name": "Summerlin Pkwy & Durango Dr WB Ramp"
+    },
+    "Sunset Rd & CC 215 NB Ramp": {
+        "lat": 36.07033,
+        "lng": -115.28778,
+        "name": "Sunset Rd & CC 215 NB Ramp"
+    },
+    "Sunset Rd & CC 215 SB Ramp": {
+        "lat": 36.07032,
+        "lng": -115.28996,
+        "name": "Sunset Rd & CC 215 SB Ramp"
+    },
+    "Sunset Rd & Eastgate Rd": {
+        "lat": 36.06372,
+        "lng": -115.02042,
+        "name": "Sunset Rd & Eastgate Rd"
+    },
+    "Sunset Rd & Paradise Rd": {
+        "lat": 36.07185,
+        "lng": -115.14161,
+        "name": "Sunset Rd & Paradise Rd"
+    },
+    "Sunset Rd & Stephanie St": {
+        "lat": 36.06345,
+        "lng": -115.04646,
+        "name": "Sunset Rd & Stephanie St"
+    },
+    "Town Center Dr & CC 215": {
+        "lat": 36.1221,
+        "lng": -115.3259,
+        "name": "Town Center Dr & CC 215"
+    },
+    "Tropicana Ave & CC-215 NB": {
+        "lat": 36.10006,
+        "lng": -115.29198,
+        "name": "Tropicana Ave & CC-215 NB"
+    },
+    "Tropicana Ave & CC-215 SB": {
+        "lat": 36.10007,
+        "lng": -115.29473,
+        "name": "Tropicana Ave & CC-215 SB"
+    },
+    "Tropicana Ave & Eastern Ave": {
+        "lat": 36.09977,
+        "lng": -115.11876,
+        "name": "Tropicana Ave & Eastern Ave"
+    },
+    "Tropicana Ave & Las Vegas Blvd Arena": {
+        "lat": 36.10106,
+        "lng": -115.17323,
+        "name": "Tropicana Ave & Las Vegas Blvd Arena"
+    },
+    "Tropicana Ave & Maryland Pkwy T&M": {
+        "lat": 36.10081,
+        "lng": -115.13713,
+        "name": "Tropicana Ave & Maryland Pkwy T&M"
+    },
+    "Tropicana Ave & Paradise Rd T&M": {
+        "lat": 36.10125,
+        "lng": -115.15003,
+        "name": "Tropicana Ave & Paradise Rd T&M"
+    },
+    "US 93 & Buchanan - Nevada Hwy": {
+        "lat": 35.9742,
+        "lng": -114.84587,
+        "name": "US 93 & Buchanan - Nevada Hwy"
+    },
+    "US 93 US 95 Interchange": {
+        "lat": 35.96776,
+        "lng": -114.89969,
+        "name": "US 93 US 95 Interchange"
+    },
+    "US 95 NB Beatty N": {
+        "lat": 36.91079,
+        "lng": -116.75629,
+        "name": "US 95 NB Beatty N"
+    },
+    "US 95 NB Beatty S": {
+        "lat": 36.91034,
+        "lng": -116.75703,
+        "name": "US 95 NB Beatty S"
+    },
+    "US 95 NB Elkhorn": {
+        "lat": 36.2913,
+        "lng": -115.2789,
+        "name": "US 95 NB Elkhorn"
+    },
+    "US 95 NB Martin Luther King": {
+        "lat": 36.17564,
+        "lng": -115.1609,
+        "name": "US 95 NB Martin Luther King"
+    },
+    "US 95 NB N I-215 (dual)": {
+        "lat": 36.27824,
+        "lng": -115.26678,
+        "name": "US 95 NB N I-215 (dual)"
+    },
+    "US 95 NB N Rancho": {
+        "lat": 36.25526,
+        "lng": -115.24667,
+        "name": "US 95 NB N Rancho"
+    },
+    "US 95 NB N of Smoke Ranch": {
+        "lat": 36.2071,
+        "lng": -115.2427,
+        "name": "US 95 NB N of Smoke Ranch"
+    },
+    "US 95 NB S of Alexander": {
+        "lat": 36.22949,
+        "lng": -115.24636,
+        "name": "US 95 NB S of Alexander"
+    },
+    "US 95 NB Torrey Pines": {
+        "lat": 36.17397,
+        "lng": -115.2333,
+        "name": "US 95 NB Torrey Pines"
+    },
+    "US 95 NB W of Decatur": {
+        "lat": 36.17429,
+        "lng": -115.21579,
+        "name": "US 95 NB W of Decatur"
+    },
+    "US 95 NB W of Valley View": {
+        "lat": 36.17433,
+        "lng": -115.20078,
+        "name": "US 95 NB W of Valley View"
+    },
+    "US 95 NB Washington": {
+        "lat": 36.181,
+        "lng": -115.243,
+        "name": "US 95 NB Washington"
+    },
+    "US 95 SB Ann Rd": {
+        "lat": 36.26402,
+        "lng": -115.25551,
+        "name": "US 95 SB Ann Rd"
+    },
+    "US 95 SB Cheyenne": {
+        "lat": 36.21879,
+        "lng": -115.24791,
+        "name": "US 95 SB Cheyenne"
+    },
+    "US 95 SB Craig": {
+        "lat": 36.24389,
+        "lng": -115.24765,
+        "name": "US 95 SB Craig"
+    },
+    "US 95 SB Decatur": {
+        "lat": 36.17301,
+        "lng": -115.20561,
+        "name": "US 95 SB Decatur"
+    },
+    "US 95 SB E of Rainbow": {
+        "lat": 36.17333,
+        "lng": -115.23962,
+        "name": "US 95 SB E of Rainbow"
+    },
+    "US 95 SB Jones": {
+        "lat": 36.17372,
+        "lng": -115.22437,
+        "name": "US 95 SB Jones"
+    },
+    "US 95 SB Lake Mead": {
+        "lat": 36.19572,
+        "lng": -115.2457,
+        "name": "US 95 SB Lake Mead"
+    },
+    "US 95 SB Rainbow Curve": {
+        "lat": 36.17616,
+        "lng": -115.24353,
+        "name": "US 95 SB Rainbow Curve"
+    },
+    "US 95 SB S Rancho": {
+        "lat": 36.1744,
+        "lng": -115.1729,
+        "name": "US 95 SB S Rancho"
+    },
+    "US 95 SB S of Vegas Dr": {
+        "lat": 36.18703,
+        "lng": -115.24606,
+        "name": "US 95 SB S of Vegas Dr"
+    },
+    "US 95 SB Valley View": {
+        "lat": 36.17579,
+        "lng": -115.19281,
+        "name": "US 95 SB Valley View"
+    },
+    "US 95 SB W of Rancho": {
+        "lat": 36.175,
+        "lng": -115.1826,
+        "name": "US 95 SB W of Rancho"
+    },
+    "US 95 at Scottys Junction": {
+        "lat": 37.30719,
+        "lng": -117.06223,
+        "name": "US 95 at Scottys Junction"
+    },
+    "US-93 SB NV Way (DMS 73)": {
+        "lat": 35.9885,
+        "lng": -114.8328,
+        "name": "US-93 SB NV Way (DMS 73)"
+    },
+    "US93 Caliente": {
+        "lat": 37.65444,
+        "lng": -114.49773,
+        "name": "US93 Caliente"
+    },
+    "Valle Verde Dr & I-215 WB Beltway": {
+        "lat": 36.02751,
+        "lng": -115.06254,
+        "name": "Valle Verde Dr & I-215 WB Beltway"
+    },
+    "Valley View Blvd & Meadows Ln": {
+        "lat": 36.17033,
+        "lng": -115.19277,
+        "name": "Valley View Blvd & Meadows Ln"
+    },
+    "Veterans Memorial Dr & US 93/95": {
+        "lat": 35.96746,
+        "lng": -114.86848,
+        "name": "Veterans Memorial Dr & US 93/95"
+    },
+    "Warm Springs Rd & CC 215 SB": {
+        "lat": 36.05747,
+        "lng": -115.14426,
+        "name": "Warm Springs Rd & CC 215 SB"
+    },
+    "Windmill Ln & I-215 EB Beltway": {
+        "lat": 36.04248,
+        "lng": -115.13364,
+        "name": "Windmill Ln & I-215 EB Beltway"
+    },
+    "Las Vegas": {
+        "lat": 36.1699,
+        "lng": -115.1398,
+        "name": "Las Vegas"
     }
-} 
+}

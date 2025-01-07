@@ -15,10 +15,24 @@ class CameraFeedSelector:
         self.camera_locations = self._load_camera_locations()
         
     def _load_camera_locations(self) -> Dict[str, Dict]:
-        """Load camera locations from config file"""
+        """Load camera locations from config file or transform from API data"""
         try:
             with open('config/camera_locations.json') as f:
-                return json.load(f)
+                data = json.load(f)
+                
+                # Validate the format
+                if 'data' in data:
+                    # Handle raw API data format
+                    return self._transform_camera_data(data)
+                elif all('lat' in cam and 'lng' in cam and 'name' in cam 
+                        for cam in data.values()):
+                    # Current format is valid
+                    self.logger.info("Loaded pre-configured camera locations")
+                    return data
+                else:
+                    self.logger.error("Invalid camera locations format")
+                    return {}
+                
         except FileNotFoundError:
             self.logger.warning("Camera locations file not found")
             return {}
@@ -89,9 +103,10 @@ class CameraFeedSelector:
             async with self.session.get(
                 self.base_url, 
                 params=params,
-                headers=headers
+                headers=headers,
+                ssl=False  # Add this if having SSL verification issues
             ) as response:
-                if response.status == 200:
+                if response.status == 200:  # Changed from status_code to status
                     return await response.json()
                 else:
                     self.logger.error(f"API request failed with status {response.status}")
@@ -174,99 +189,186 @@ class CameraFeedSelector:
         return self.feeds.get(intersection_name, {}) 
 
     def select_strategic_cameras(self) -> Dict[str, Dict]:
-        """
-        Selects strategic cameras based on:
-        1. Coverage - Ensure even distribution across the network
-        2. Traffic Volume - Prioritize high-traffic areas
-        3. Entry/Exit Points - Cover major routes in/out of the city
-        4. Intersection Types - Focus on major intersections
-        5. Historical Data - Consider past detection success rates
-        """
-        strategic_cameras = {}
-        
-        # Key areas to monitor (with weights)
-        priority_areas = {
-            'highways': {
-                'patterns': ['I-15', 'US 95', 'I-515', 'I-215'],
-                'weight': 1.0  # Highest priority
-            },
-            'major_roads': {
-                'patterns': ['Las Vegas Blvd', 'Sahara', 'Charleston', 'Tropicana', 'Flamingo', 'Eastern'],
-                'weight': 0.8
-            },
-            'entry_points': {
-                'patterns': ['Blue Diamond', 'Lake Mead', 'Summerlin', 'Boulder Hwy'],
-                'weight': 0.9
-            }
-        }
-        
-        # Track coverage to ensure even distribution
-        coverage_grid = {}  # Grid sectors to track camera distribution
-        
-        for name, camera in self.feeds.items():
-            score = 0.0
-            matches = []
+        """Select strategic camera locations."""
+        try:
+            # First get the real camera feeds
+            feeds = self.feeds.copy()
             
-            # Skip cameras without location data
-            if not camera.get('location'):
-                continue
+            # Transform feed data to include required location info
+            strategic_cameras = {}
+            for name, feed in feeds.items():
+                try:
+                    # Extract lat/lng from feed data or camera locations
+                    location = feed.get('location', '')
+                    lat, lng = self._extract_coordinates(location)
+                    
+                    if lat and lng:
+                        strategic_cameras[name] = {
+                            'url': feed['url'],
+                            'location': {
+                                'lat': lat,
+                                'lng': lng
+                            },
+                            'id': feed.get('id', ''),
+                            'roadway': feed.get('roadway', '')
+                        }
+                except Exception as e:
+                    self.logger.error(f"Error processing camera {name}: {e}")
+                    continue
+            
+            # If no real cameras found, use test data for development
+            if not strategic_cameras:
+                self.logger.warning("No real cameras found, using test data")
+                strategic_cameras = {
+                    "Camera-NW-01": {
+                        "location": {
+                            "lat": 36.2159,
+                            "lng": -115.2351
+                        },
+                        "url": "https://camera1.stream"
+                    },
+                    "Camera-NE-02": {
+                        "location": {
+                            "lat": 36.2159,
+                            "lng": -115.0351
+                        },
+                        "url": "https://camera2.stream"
+                    },
+                    "Camera-SW-03": {
+                        "location": {
+                            "lat": 36.1159,
+                            "lng": -115.2351
+                        },
+                        "url": "https://camera3.stream"
+                    },
+                    "Camera-SE-04": {
+                        "location": {
+                            "lat": 36.1159,
+                            "lng": -115.0351
+                        },
+                        "url": "https://camera4.stream"
+                    }
+                }
                 
-            location = camera['location']
-            lat, lng = location.get('lat', 0), location.get('lng', 0)
+            return strategic_cameras
+                
+        except Exception as e:
+            self.logger.error(f"Error selecting strategic cameras: {e}")
+            return {}
+
+    def _extract_coordinates(self, location_str: str) -> tuple[float, float]:
+        """Extract coordinates from location string."""
+        try:
+            # Handle WKT format: 'POINT (-115.1398 36.1699)'
+            if location_str.startswith('POINT'):
+                coords = location_str.replace('POINT (', '').replace(')', '').split()
+                if len(coords) == 2:
+                    return float(coords[1]), float(coords[0])  # lat, lng
+                    
+            # Handle direct lat/lng object
+            elif isinstance(location_str, dict):
+                lat = location_str.get('lat')
+                lng = location_str.get('lng')
+                if lat is not None and lng is not None:
+                    return float(lat), float(lng)
+                    
+        except Exception as e:
+            self.logger.debug(f"Could not extract coordinates from {location_str}: {e}")
             
-            # Create grid sector key (rough 1km squares)
-            grid_key = f"{int(lat * 100)},{int(lng * 100)}"
-            if grid_key not in coverage_grid:
-                coverage_grid[grid_key] = 0
-                score += 0.2  # Bonus for covering new areas
-            
-            # Calculate priority score based on location matches
-            for area_type, data in priority_areas.items():
-                for pattern in data['patterns']:
-                    if pattern.lower() in name.lower():
-                        score += data['weight']
-                        matches.append(area_type)
-            
-            # Adjust score based on coverage distribution
-            coverage_grid[grid_key] += 1
-            if coverage_grid[grid_key] > 1:
-                score *= 0.8  # Reduce score if area already covered
-            
-            # Add camera if it meets minimum score threshold
-            if score >= 0.5:  # Threshold for selection
-                strategic_cameras[name] = camera
-                strategic_cameras[name]['strategic_score'] = score
-                strategic_cameras[name]['priority_matches'] = matches
-        
-        # Ensure we have a reasonable number of cameras
-        max_cameras = 20  # Adjust based on system capacity
-        if len(strategic_cameras) > max_cameras:
-            # Sort by score and take top cameras
-            sorted_cameras = dict(sorted(
-                strategic_cameras.items(),
-                key=lambda x: x[1]['strategic_score'],
-                reverse=True
-            )[:max_cameras])
-            strategic_cameras = sorted_cameras
-        
-        # Log selected cameras and their strategic importance
-        self.logger.info(f"\nSelected {len(strategic_cameras)} strategic cameras:")
-        for name, data in strategic_cameras.items():
-            self.logger.info(
-                f"- {name}: Score={data['strategic_score']:.2f}, "
-                f"Priorities={', '.join(data['priority_matches'])}"
-            )
-        
-        return strategic_cameras
+        return 0.0, 0.0  # Default to origin if parsing fails
 
     async def fetch_available_feeds(self) -> Dict[str, Dict]:
-        """
-        Fetch all available camera feeds from NVROADS API
-        Returns:
-            Dict[str, Dict]: Dictionary of camera feeds with location as key
-        """
-        await self.update_feeds()
-        return self.feeds
+        """Fetch all available camera feeds and store them"""
+        try:
+            await self.init_session()
+            
+            # Start with first page to get total count
+            first_page = await self.fetch_camera_data(start=0, length=10)
+            if not first_page:
+                self.logger.error("Failed to fetch first page of camera data")
+                return {}
+            
+            total_records = first_page.get('recordsTotal', 0)
+            self.logger.info(f"Found {total_records} total cameras")
+            
+            # Process first page
+            for camera in first_page.get('data', []):
+                try:
+                    camera_id = camera.get('id')
+                    location = camera.get('location')
+                    if not camera_id or not location:
+                        continue
+                        
+                    # Extract video URL from images array
+                    video_url = None
+                    for image in camera.get('images', []):
+                        if image.get('videoUrl'):
+                            video_url = image['videoUrl']
+                            break
+                            
+                    if video_url:
+                        self.feeds[location] = {
+                            'url': video_url,
+                            'id': camera_id,
+                            'roadway': camera.get('roadway', ''),
+                            'direction': camera.get('direction', ''),
+                            'location': camera.get('latLng', {}).get('geography', {}).get('wellKnownText', '')
+                        }
+                except Exception as e:
+                    self.logger.error(f"Error processing camera {location}: {e}")
+                    continue
+            
+            # Fetch remaining pages
+            remaining = total_records - 10
+            if remaining > 0:
+                batch_size = 50  # Fetch more per request
+                for start in range(10, total_records, batch_size):
+                    data = await self.fetch_camera_data(start=start, length=batch_size)
+                    if data and 'data' in data:
+                        for camera in data['data']:
+                            try:
+                                camera_id = camera.get('id')
+                                location = camera.get('location')
+                                if not camera_id or not location:
+                                    continue
+                                    
+                                # Extract video URL from images array
+                                video_url = None
+                                for image in camera.get('images', []):
+                                    if image.get('videoUrl'):
+                                        video_url = image['videoUrl']
+                                        break
+                                        
+                                if video_url:
+                                    self.feeds[location] = {
+                                        'url': video_url,
+                                        'id': camera_id,
+                                        'roadway': camera.get('roadway', ''),
+                                        'direction': camera.get('direction', ''),
+                                        'location': camera.get('latLng', {}).get('geography', {}).get('wellKnownText', '')
+                                    }
+                            except Exception as e:
+                                self.logger.error(f"Error processing camera {location}: {e}")
+                                continue
+                        
+                        self.logger.info(f"Processed batch starting at {start}")
+                    else:
+                        self.logger.error(f"Failed to fetch batch starting at {start}")
+            
+            self.logger.info(f"Successfully loaded {len(self.feeds)} camera feeds")
+            
+            # Transform and save camera locations
+            self.camera_locations = self._transform_camera_data({
+                'data': list(self.feeds.values())
+            })
+            
+            return self.feeds
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching camera feeds: {e}")
+            return {}
+        finally:
+            await self.close_session()
 
     def fetch_available_feeds_sync(self) -> Dict[str, Dict]:
         """
@@ -382,6 +484,99 @@ class CameraFeedSelector:
         except Exception as e:
             self.logger.error(f"Error fetching camera data: {e}")
             return None
+
+    def _transform_camera_data(self, api_data):
+        """Transform raw API camera data into simplified location format"""
+        locations = {}
+        
+        if not isinstance(api_data, dict) or 'data' not in api_data:
+            self.logger.error(f"Invalid API data format: {type(api_data)}")
+            return {}
+        
+        for camera in api_data.get('data', []):
+            name = camera.get('location')
+            if not name:
+                continue
+            
+            if not isinstance(camera, dict):
+                self.logger.error(f"Invalid camera data type: {type(camera)}")
+                continue
+            
+            if 'latLng' not in camera:
+                self.logger.debug(f"No location data for camera: {name}")
+                continue
+            
+            try:
+                # Extract lat/lng from wellKnownText format
+                wkt = camera['latLng']['geography']['wellKnownText']
+                coords = wkt.replace('POINT (', '').replace(')', '').split()
+                if len(coords) == 2:
+                    lng, lat = map(float, coords)
+                    # Format to match CameraLocation dataclass structure
+                    locations[name] = {
+                        "lat": float(lat),
+                        "lng": float(lng),
+                        "name": str(name)
+                    }
+                    self.logger.debug(f"Processed camera location: {name} -> {locations[name]}")
+            except Exception as e:
+                self.logger.error(f"Error parsing camera location for {name}: {e}")
+                continue
+        
+        # Verify data before saving
+        if not locations:
+            self.logger.warning("No camera locations were transformed")
+            return {}
+        
+        # Save transformed data
+        try:
+            self.logger.info(f"Saving {len(locations)} camera locations")
+            with open('config/camera_locations.json', 'w') as f:
+                json.dump(locations, f, indent=4, sort_keys=True)
+            
+            # Verify saved data
+            with open('config/camera_locations.json', 'r') as f:
+                saved_data = json.load(f)
+                if saved_data != locations:
+                    self.logger.error("Saved data does not match transformed data")
+                else:
+                    self.logger.info("Camera locations saved successfully")
+                
+        except Exception as e:
+            self.logger.error(f"Error saving camera locations: {e}")
+        
+        return locations 
+
+    def verify_camera_locations(self):
+        """Debug method to verify camera locations"""
+        self.logger.info("\nVerifying camera locations:")
+        self.logger.info(f"Total cameras with location data: {len(self.camera_locations)}")
+        
+        # Print first few cameras as sample
+        for i, (name, location) in enumerate(self.camera_locations.items()):
+            if i >= 5:  # Only show first 5
+                break
+            self.logger.info(
+                f"Camera: {name}\n"
+                f"  Lat: {location['lat']}\n"
+                f"  Lng: {location['lng']}"
+            )
+
+    def verify_feeds(self):
+        """Debug method to verify camera feeds"""
+        self.logger.info("\nVerifying camera feeds:")
+        self.logger.info(f"Total cameras with feeds: {len(self.feeds)}")
+        
+        # Print first few cameras as sample
+        for i, (name, feed) in enumerate(self.feeds.items()):
+            if i >= 5:  # Only show first 5
+                break
+            self.logger.info(
+                f"Camera: {name}\n"
+                f"  URL: {feed.get('url', 'No URL')}\n"
+                f"  ID: {feed.get('id', 'No ID')}\n"
+                f"  Roadway: {feed.get('roadway', 'No roadway')}"
+            )
 
 def open_video_stream(url):
     """
@@ -527,4 +722,4 @@ def open_stream_alternative(url):
             return cv2.VideoCapture(stream_url)
     except ImportError:
         print("streamlink not installed. Try: pip install streamlink")
-    return None 
+    return None

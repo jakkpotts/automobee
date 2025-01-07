@@ -101,3 +101,10 @@ nvroads.com/
 data/vehicles
 models
 monitoring
+
+# Security considerations
+.env
+.env.local
+.env.*.local
+model_cache/test_image.jpg
+model_cache/vmmr_labels.json
