@@ -108,3 +108,10 @@ monitoring
 .env.*.local
 model_cache/test_image.jpg
 model_cache/vmmr_labels.json
+.venv/bin/activate
+.VSCodeCounter
+.venv/lib/python3.11
+yolo11n-cls.onnx
+yolo11n-cls.pt
+yolov5su.pt
+yolov8n.onnx

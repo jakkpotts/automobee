@@ -179,6 +179,7 @@ class VehicleDetector:
         try:
             # Try original URL first if we haven't tried any servers yet
             if not health['tried_servers']:
+                self.logger.debug(f"Trying original URL for camera {camera_id}: {url}")
                 cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
                 if cap is not None and cap.isOpened():
                     health['failures'] = 0
@@ -186,6 +187,8 @@ class VehicleDetector:
                     health['current_server'] = None
                     self.logger.info(f"Successfully connected to camera {camera_id}")
                     return cap
+                else:
+                    self.logger.warning(f"Failed to open stream for camera {camera_id} using original URL")
 
             # If original URL fails, try alternative servers
             for server in self.server_alternatives:
@@ -195,7 +198,7 @@ class VehicleDetector:
                 try:
                     # Construct alternative URL
                     alt_url = self._get_alternative_url(url, server)
-                    self.logger.debug(f"Trying alternative server {server} for camera {camera_id}")
+                    self.logger.debug(f"Trying alternative server {server} for camera {camera_id}: {alt_url}")
                     
                     cap = cv2.VideoCapture(alt_url, cv2.CAP_FFMPEG)
                     if cap is not None and cap.isOpened():

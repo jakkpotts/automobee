@@ -4,6 +4,7 @@ from dashboard import run_dashboard
 import asyncio
 import logging
 import threading
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ async def main():
         # Update target vehicle configuration to include specific F-150 variants
         target_vehicle = {
             "make": "ford",
-            "model": "f-150",
+            "model": "f150",
             "model_ids": ["3177", "3178", "3179", "3180", "3181", "3182", "3183", "3184", "3185", "3186", "3187", "3188", "3189", "3190", "3191", "3192", "3193", "3194", "3195", "3196", "3197", "3198", "3199", "3200", "3201", "3202", "3203", "3204", "3205", "3206", "3207", "3208", "3209", "3210", "3211", "3212", "3213", "3214", "3215", "3216", "3217", "3218", "3219"]
             #"confidence_threshold": 0.7,
             #"variants": [
@@ -62,12 +63,28 @@ def run_detection():
     """Run the detection process"""
     asyncio.run(main())
 
+def start_dashboard():
+    """Start dashboard with auto-restart capability"""
+    while True:
+        try:
+            from dashboard import run_dashboard
+            run_dashboard()
+        except Exception as e:
+            logger.error(f"Dashboard crashed: {e}. Restarting in 5 seconds...")
+            time.sleep(5)
+
 if __name__ == "__main__":
     try:
-        # Start dashboard in a new process instead of a thread
+        # Start dashboard in a new process
         import multiprocessing
-        dashboard_process = multiprocessing.Process(target=run_dashboard)
+        dashboard_process = multiprocessing.Process(
+            target=start_dashboard,
+            daemon=True  # Make it daemon so it exits with main process
+        )
         dashboard_process.start()
+        
+        # Give the dashboard time to start
+        time.sleep(3)
         
         # Run detection in main process
         run_detection()
@@ -76,6 +93,7 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("Error in main process:", exc_info=True)
     finally:
+        # Clean shutdown
         if 'dashboard_process' in locals():
             dashboard_process.terminate()
-            dashboard_process.join()
+            dashboard_process.join(timeout=5)

@@ -18,3 +18,7 @@ opencv-python-headless
 python-ffmpeg
 streamlink
 ffmpeg
+async-generator
+flask-cors
+asgiref
+python-dotenv

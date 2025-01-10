@@ -225,6 +225,10 @@ function updateStatsCounters(data) {
     if (totalDetectionsElement) {
         totalDetectionsElement.textContent = data.total_detections || 0;
     }
+    const totalDetectionsElement = document.getElementById('total-detections');
+    if (totalDetectionsElement) {
+        totalDetectionsElement.textContent = data.total_detections || 0;
+    }
 
     // Update active cameras
     const activeCamerasElement = document.getElementById('active-cameras');
@@ -251,26 +255,39 @@ function updateStats() {
         .then(data => {
             console.log('Received stats:', data);
             
-            // Update state
-            dashboardState.updateDetections(data.recent_detections || []);
-            dashboardState.alerts = data.active_alerts || [];
+            // Update state with real data
+            dashboardState.detections = data.recent_detections || [];
+            dashboardState.alerts = data.alerts || [];
+            
+            // Process camera data
+            const cameraData = {};
+            if (data.cameras) {
+                Object.entries(data.cameras).forEach(([id, camera]) => {
+                    cameraData[id] = {
+                        name: camera.name,
+                        status: camera.status,
+                        lat: camera.location?.latitude,
+                        lng: camera.location?.longitude,
+                        url: camera.stream_url,
+                        last_update: camera.last_update
+                    };
+                });
+            }
             
             // Update UI elements
             updateDetectionsList();
             updateAlertsList();
-            updateCameraList(data.camera_stats || {});
+            updateCameraList(cameraData);
             
-            // Update map markers with camera locations and status
-            if (data.camera_locations) {
-                updateMapMarkers(data.camera_locations);
-            }
+            // Update map markers with real camera locations
+            updateMapMarkers(cameraData);
             
-            // Update stats counters
+            // Update stats counters with real data
             updateStatsCounters({
-                total_detections: data.total_detections || 0,
-                active_cameras: data.active_cameras || 0,
-                detection_rate: Math.round((data.total_detections || 0) / 
-                    (((Date.now() - new Date(data.uptime_start || Date.now()).getTime()) / 3600000) || 1))
+                total_detections: data.stats?.total_detections || 0,
+                active_cameras: Object.values(data.cameras || {})
+                    .filter(c => c.status === 'active').length,
+                detection_rate: data.stats?.detection_rate || 0
             });
         })
         .catch(error => {
@@ -339,8 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Update markers for OpenLayers
-function updateMapMarkers(locations) {
+// Update markers for Leaflet
+function updateMapMarkers(cameras) {
     if (!dashboardState.map || !dashboardState.markers) {
         console.error('Map or markers not initialized');
         return;
@@ -350,57 +367,51 @@ function updateMapMarkers(locations) {
         // Clear existing markers
         dashboardState.markers.clearLayers();
 
-        // Add new markers
-        Object.entries(locations).forEach(([name, location]) => {
-            try {
-                if (!location.lat || !location.lng) {
-                    console.warn(`Invalid coordinates for camera ${name}`);
-                    return;
-                }
-
-                const marker = L.marker(
-                    [location.lat, location.lng],
-                    { 
-                        icon: location.status === 'error' ? 
-                            dashboardState.icons.error : 
-                            dashboardState.icons.active
-                    }
-                );
-
-                // Add popup with camera info
-                const popup = L.popup().setContent(`
-                    <div class="camera-popup">
-                        <h3>${name}</h3>
-                        <div class="status">
-                            <span class="status-dot ${location.status || 'active'}"></span>
-                            <span>${location.status || 'Active'}</span>
-                        </div>
-                        <button onclick="openStreamModal('${name}', '${location.url}')"
-                                class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors w-full">
-                            View Stream
-                        </button>
-                    </div>
-                `);
-
-                marker.bindPopup(popup);
-
-                // Add hover effect
-                marker.on('mouseover', function() {
-                    this.openPopup();
-                });
-
-                // Add to feature group
-                dashboardState.markers.addLayer(marker);
-
-            } catch (e) {
-                console.error(`Error adding marker for ${name}:`, e);
+        // Add new markers for each camera
+        Object.entries(cameras).forEach(([id, camera]) => {
+            if (!camera.lat || !camera.lng) {
+                console.warn(`Invalid coordinates for camera ${camera.name}`);
+                return;
             }
+
+            const marker = L.marker(
+                [camera.lat, camera.lng],
+                { 
+                    icon: camera.status === 'error' ? 
+                        dashboardState.icons.error : 
+                        dashboardState.icons.active
+                }
+            );
+
+            // Add popup with camera info and stream button
+            const popup = L.popup().setContent(`
+                <div class="camera-popup p-3">
+                    <h3 class="font-semibold mb-2">${camera.name}</h3>
+                    <div class="status mb-2">
+                        <span class="inline-block w-2 h-2 rounded-full ${
+                            camera.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                        } mr-2"></span>
+                        <span class="text-sm">${camera.status}</span>
+                    </div>
+                    ${camera.last_update ? 
+                        `<p class="text-xs text-gray-500 mb-2">Last update: ${formatTime(camera.last_update)}</p>` 
+                        : ''}
+                    <button onclick="openStreamModal('${camera.name}', '${camera.url}')"
+                            class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors w-full">
+                        View Stream
+                    </button>
+                </div>
+            `);
+
+            marker.bindPopup(popup);
+
+            // Add to feature group
+            dashboardState.markers.addLayer(marker);
         });
 
         // Fit map to markers if we have any
         if (dashboardState.markers.getLayers().length > 0) {
-            const bounds = dashboardState.markers.getBounds();
-            dashboardState.map.fitBounds(bounds, {
+            dashboardState.map.fitBounds(dashboardState.markers.getBounds(), {
                 padding: [50, 50],
                 maxZoom: 13
             });
@@ -549,8 +560,6 @@ function showNotification() {
     notification.classList.add('notification-show');
     setTimeout(() => {
         notification.classList.remove('notification-show');
-    }, 3000);
-}
 
 // Update alerts list - Fix syntax error and complete the function
 function updateAlertsList() {
@@ -792,5 +801,37 @@ function debounce(func, wait) {
         };
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
+        clearTimeout(timeout);
     };
 }
+    };
+}
+
+// Add missing handler functions for realtime updates
+function addDetection(detection) {
+    if (!detection) return;
+    
+    // Add to state
+    dashboardState.detections.unshift(detection);
+    if (dashboardState.detections.length > 50) {
+        dashboardState.detections.pop();
+    }
+    
+    // Update UI
+    updateDetectionsList();
+    showNotification();
+}
+
+function addAlert(alert) {
+    if (!alert) return;
+    
+    // Add to state
+    dashboardState.alerts.unshift(alert);
+    if (dashboardState.alerts.length > 10) {
+        dashboardState.alerts.pop();
+    }
+    
+    // Update UI
+    updateAlertsList();
+}
+        timeout = setTimeout(later, wait);
