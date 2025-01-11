@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutomoBee Vehicle Detection</title>
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nord: {
+                            0: '#2E3440',
+                            1: '#3B4252',
+                            2: '#434C5E',
+                            3: '#4C566A',
+                            4: '#D8DEE9',
+                            5: '#E5E9F0',
+                            6: '#ECEFF4',
+                            7: '#8FBCBB',
+                            8: '#88C0D0',
+                            9: '#81A1C1',
+                            10: '#5E81AC',
+                            11: '#BF616A',
+                            12: '#D08770',
+                            13: '#EBCB8B',
+                            14: '#A3BE8C',
+                            15: '#B48EAD'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Fix Leaflet controls for light theme */
+        .leaflet-control-zoom a {
+            @apply bg-white text-nord-0 border border-nord-4;
+        }
+
+        .leaflet-control-zoom a:hover {
+            @apply bg-nord-5;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            @apply bg-nord-5;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            @apply bg-nord-3 rounded-full;
+        }
+
+        /* Map container */
+        #main-map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="bg-nord-6">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-nord-4 shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-nord-10 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-nord-0">AutomoBee</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <input
+                    id="camera-search"
+                    class="bg-nord-6 text-nord-0 rounded-lg px-4 py-2 border border-nord-4 focus:outline-none focus:ring-2 focus:ring-nord-10"
+                    placeholder="Search cameras..."
+                />
+                <button id="refresh-detections" class="bg-nord-10 text-white px-4 py-2 rounded-lg hover:bg-nord-9 transition-colors">
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="pt-16 flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-80 bg-white border-r border-nord-4 p-6 overflow-y-auto">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-nord-5 p-4 rounded-lg">
+                    <p class="text-sm text-nord-3">Total Detections</p>
+                    <h3 id="total-detections" class="text-2xl font-bold text-nord-10">0</h3>
+                </div>
+                <div class="bg-nord-5 p-4 rounded-lg">
+                    <p class="text-sm text-nord-3">Active Cameras</p>
+                    <h3 id="active-cameras" class="text-2xl font-bold text-nord-14">0</h3>
+                </div>
+                <div class="bg-nord-5 p-4 rounded-lg col-span-2">
+                    <p class="text-sm text-nord-3">Detection Rate</p>
+                    <h3 id="detection-rate" class="text-2xl font-bold text-nord-15">0/hr</h3>
+                </div>
+            </div>
+
+            <!-- Camera Status -->
+            <div class="mb-6">
+                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Camera Status</h2>
+                <div id="camera-status-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+            </div>
+
+            <!-- Camera List -->
+            <div class="mb-6">
+                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Cameras</h2>
+                <div id="camera-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+            </div>
+
+            <!-- Alerts -->
+            <div>
+                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Active Alerts</h2>
+                <div id="alerts-container" class="space-y-2 max-h-48 overflow-y-auto"></div>
+            </div>
+        </aside>
+
+        <!-- Main Area -->
+        <main class="flex-1 p-6 bg-nord-6 overflow-y-auto">
+            <!-- Map Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-nord-4 mb-6">
+                <div class="p-4 border-b border-nord-4 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-nord-0">Live Map View</h2>
+                    <div class="flex items-center space-x-4">
+                        <select id="map-mode" class="bg-nord-6 text-nord-0 rounded-lg px-3 py-1.5 border border-nord-4">
+                            <option value="cameras">Camera Locations</option>
+                            <option value="detections">Recent Detections</option>
+                        </select>
+                        <button id="recenter-map" class="bg-nord-5 text-nord-0 px-3 py-1.5 rounded-lg hover:bg-nord-4 transition-colors">
+                            Recenter
+                        </button>
+                    </div>
+                </div>
+                <div class="map-container">
+                    <div id="main-map"></div>
+                </div>
+            </div>
+
+            <!-- Recent Detections -->
+            <div class="bg-white rounded-lg shadow-sm border border-nord-4">
+                <div class="p-4 border-b border-nord-4 flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <h2 class="text-lg font-semibold text-nord-0">Recent Detections</h2>
+                        <span id="detection-count" class="bg-nord-10 text-white px-2 py-1 rounded-full text-sm">0</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <select id="detection-filter" class="bg-nord-6 text-nord-0 rounded-lg px-3 py-1.5 border border-nord-4">
+                            <option value="all">All Types</option>
+                            <option value="ford_f150">Ford F-150</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <button id="clear-detections" class="bg-nord-5 text-nord-0 px-3 py-1.5 rounded-lg hover:bg-nord-4 transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div id="recent-detections" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Detection cards will be added here dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Stream Modal -->
+    <div id="stream-modal" class="fixed inset-0 bg-nord-0/80 items-center justify-center backdrop-blur-sm z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 border border-nord-4">
+            <div class="p-4 border-b border-nord-4 flex justify-between items-center">
+                <h3 id="stream-title" class="text-lg font-semibold text-nord-0"></h3>
+                <button onclick="closeStreamModal()" class="text-nord-3 hover:text-nord-0 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4">
+                <video id="stream-player" controls autoplay muted class="w-full rounded-lg bg-nord-5"></video>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+    <script>
+        // Suppress source map warning
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.includes('hls.min.js.map')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Initialize map only once when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const map = L.map('main-map', {
+                center: [51.505, -0.09],
+                zoom: 13
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Store map instance globally if needed
+            window.mainMap = map;
+        });
+    </script>
+</body>
+</html>
