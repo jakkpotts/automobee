@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import json
 import logging
+from logger_config import logger
 import cv2
 import requests
 from typing import Dict, List, Optional
@@ -11,9 +12,43 @@ class CameraFeedSelector:
         self.feeds = {}
         self.session = None
         self.logger = self._setup_logging()
+        self.validated_feeds = self._load_and_validate_camera_data()
         self.base_url = "https://www.nvroads.com/List/GetData/Cameras"
         self.camera_locations = self._load_camera_locations()
         
+    def _load_and_validate_camera_data(self) -> Dict:
+        """Load and validate camera data from config file"""
+        try:
+            with open('config/camera_locations.json') as f:
+                data = json.load(f)
+                
+            # Validate data structure
+            if isinstance(data, dict):
+                # Check if each camera has required fields
+                valid_data = {}
+                for name, camera in data.items():
+                    if isinstance(camera, dict) and all(
+                        key in camera for key in ['lat', 'lng', 'name']
+                    ):
+                        valid_data[name] = camera
+                
+                if valid_data:
+                    self.logger.info(f"Loaded {len(valid_data)} valid camera locations")
+                    return valid_data
+                    
+            self.logger.warning("No valid camera data found in config file")
+            return {}
+            
+        except FileNotFoundError:
+            self.logger.warning("Camera locations file not found")
+            return {}
+        except json.JSONDecodeError:
+            self.logger.error("Invalid JSON in camera locations file")
+            return {}
+        except Exception as e:
+            self.logger.error(f"Error loading camera data: {e}")
+            return {}
+
     def _load_camera_locations(self) -> Dict[str, Dict]:
         """Load camera locations from config file or transform from API data"""
         try:
@@ -63,7 +98,7 @@ class CameraFeedSelector:
             await self.session.close()
             self.session = None
 
-    async def fetch_camera_data(self, start: int = 0, length: int = 10) -> Optional[Dict]:
+    async def fetch_camera_data(self, start: int = 0, length: int = 100) -> Optional[Dict]:
         """
         Fetch camera data from NVROADS API with proper query parameters
         Args:
@@ -121,7 +156,7 @@ class CameraFeedSelector:
         
         try:
             # First request to get total count
-            initial_data = await self.fetch_camera_data(0, 10)
+            initial_data = await self.fetch_camera_data(0, 700)
             if not initial_data:
                 return
                 
@@ -139,6 +174,54 @@ class CameraFeedSelector:
                 else:
                     self.logger.error(f"Failed to fetch batch starting at {start}")
                     
+            # Process camera data and prepare for JSON
+            camera_locations = {}
+            for camera in all_cameras:
+                try:
+                    location = camera.get('location', '')
+                    if not location:
+                        continue
+
+                    # Extract coordinates and video URL
+                    lat, lng = 0.0, 0.0
+                    video_url = None
+                    
+                    if 'latLng' in camera and 'geography' in camera['latLng']:
+                        wkt = camera['latLng']['geography']['wellKnownText']
+                        coords = wkt.replace('POINT (', '').replace(')', '').split()
+                        if len(coords) == 2:
+                            lng, lat = map(float, coords)
+                    
+                    # Extract video URL from images array
+                    for image in camera.get('images', []):
+                        if image.get('videoUrl'):
+                            video_url = image['videoUrl']
+                            break
+
+                    if lat != 0.0 and lng != 0.0:
+                        camera_locations[location] = {
+                            "lat": lat,
+                            "lng": lng,
+                            "name": location,
+                            "roadway": camera.get('roadway', ''),
+                            "direction": camera.get('direction', ''),
+                            "id": camera.get('id', ''),
+                            "url": video_url
+                        }
+
+                except Exception as e:
+                    self.logger.error(f"Error processing camera for JSON: {e}")
+                    continue
+
+            # Save to JSON file if we have data
+            if camera_locations:
+                try:
+                    with open('config/camera_locations.json', 'w') as f:
+                        json.dump(camera_locations, f, indent=4, sort_keys=True)
+                    self.logger.info(f"Saved {len(camera_locations)} camera locations to JSON")
+                except Exception as e:
+                    self.logger.error(f"Error saving camera locations to JSON: {e}")
+
             # Process camera data
             for camera in all_cameras:
                 try:
@@ -169,6 +252,9 @@ class CameraFeedSelector:
                     continue
                     
             self.logger.info(f"Successfully loaded {len(self.feeds)} camera feeds")
+            self.logger.info(self.feeds)
+            
+
             
         except Exception as e:
             self.logger.error(f"Error updating feeds: {e}")
@@ -191,66 +277,76 @@ class CameraFeedSelector:
     def select_strategic_cameras(self) -> Dict[str, Dict]:
         """Select strategic camera locations."""
         try:
-            # First get the real camera feeds
-            feeds = self.feeds.copy()
-            
-            # Transform feed data to include required location info
-            strategic_cameras = {}
-            for name, feed in feeds.items():
-                try:
-                    # Extract lat/lng from feed data or camera locations
-                    location = feed.get('location', '')
-                    lat, lng = self._extract_coordinates(location)
-                    
-                    if lat and lng:
-                        strategic_cameras[name] = {
-                            'url': feed['url'],
-                            'location': {
-                                'lat': lat,
-                                'lng': lng
-                            },
-                            'id': feed.get('id', ''),
-                            'roadway': feed.get('roadway', '')
-                        }
-                except Exception as e:
-                    self.logger.error(f"Error processing camera {name}: {e}")
-                    continue
-            
-            # If no real cameras found, use test data for development
-            if not strategic_cameras:
-                self.logger.warning("No real cameras found, using test data")
-                strategic_cameras = {
-                    "Camera-NW-01": {
-                        "location": {
-                            "lat": 36.2159,
-                            "lng": -115.2351
+            # First try to use validated feeds
+            if self.validated_feeds:
+                self.logger.info("Using pre-validated camera feeds")
+                strategic_cameras = {}
+                for name, camera in self.validated_feeds.items():
+                    strategic_cameras[name] = {
+                        'location': {
+                            'lat': camera['lat'],
+                            'lng': camera['lng']
                         },
-                        "url": "https://camera1.stream"
-                    },
-                    "Camera-NE-02": {
-                        "location": {
-                            "lat": 36.2159,
-                            "lng": -115.0351
-                        },
-                        "url": "https://camera2.stream"
-                    },
-                    "Camera-SW-03": {
-                        "location": {
-                            "lat": 36.1159,
-                            "lng": -115.2351
-                        },
-                        "url": "https://camera3.stream"
-                    },
-                    "Camera-SE-04": {
-                        "location": {
-                            "lat": 36.1159,
-                            "lng": -115.0351
-                        },
-                        "url": "https://camera4.stream"
+                        'name': camera['name'],
+                        'url': camera.get('url', '')  # Add URL from new JSON format
                     }
+                    # Add optional fields if they exist
+                    if 'roadway' in camera:
+                        strategic_cameras[name]['roadway'] = camera['roadway']
+                    if 'direction' in camera:
+                        strategic_cameras[name]['direction'] = camera['direction']
+                    if 'id' in camera:
+                        strategic_cameras[name]['id'] = camera['id']
+                return strategic_cameras
+
+            # If no validated feeds, try real camera feeds
+            feeds = self.feeds.copy()
+            if feeds:
+                # Transform feed data to include required location info
+                strategic_cameras = {}
+                for name, feed in feeds.items():
+                    try:
+                        location = feed.get('location', '')
+                        lat, lng = self._extract_coordinates(location)
+                        
+                        if lat and lng:
+                            strategic_cameras[name] = {
+                                'url': feed['url'],
+                                'location': {
+                                    'lat': lat,
+                                    'lng': lng
+                                },
+                                'id': feed.get('id', ''),
+                                'roadway': feed.get('roadway', ''),
+                                'name': name
+                            }
+                    except Exception as e:
+                        self.logger.error(f"Error processing camera {name}: {e}")
+                        continue
+
+                if strategic_cameras:
+                    return strategic_cameras
+
+            # Fall back to test data if no other sources available
+            self.logger.warning("No real cameras found, using test data")
+            return {
+                "Camera-NW-01": {
+                    "location": {"lat": 36.2159, "lng": -115.2351},
+                    "url": "https://camera1.stream"
+                },
+                "Camera-NE-02": {
+                    "location": {"lat": 36.2159, "lng": -115.0351},
+                    "url": "https://camera2.stream"
+                },
+                "Camera-SW-03": {
+                    "location": {"lat": 36.1159, "lng": -115.2351},
+                    "url": "https://camera3.stream"
+                },
+                "Camera-SE-04": {
+                    "location": {"lat": 36.1159, "lng": -115.0351},
+                    "url": "https://camera4.stream"
                 }
-                
-            return strategic_cameras
+            }
                 
         except Exception as e:
             self.logger.error(f"Error selecting strategic cameras: {e}")
@@ -278,97 +374,8 @@ class CameraFeedSelector:
         return 0.0, 0.0  # Default to origin if parsing fails
 
     async def fetch_available_feeds(self) -> Dict[str, Dict]:
-        """Fetch all available camera feeds and store them"""
-        try:
-            await self.init_session()
-            
-            # Start with first page to get total count
-            first_page = await self.fetch_camera_data(start=0, length=10)
-            if not first_page:
-                self.logger.error("Failed to fetch first page of camera data")
-                return {}
-            
-            total_records = first_page.get('recordsTotal', 0)
-            self.logger.info(f"Found {total_records} total cameras")
-            
-            # Process first page
-            for camera in first_page.get('data', []):
-                try:
-                    camera_id = camera.get('id')
-                    location = camera.get('location')
-                    if not camera_id or not location:
-                        continue
-                        
-                    # Extract video URL from images array
-                    video_url = None
-                    for image in camera.get('images', []):
-                        if image.get('videoUrl'):
-                            video_url = image['videoUrl']
-                            break
-                            
-                    if video_url:
-                        self.feeds[location] = {
-                            'url': video_url,
-                            'id': camera_id,
-                            'roadway': camera.get('roadway', ''),
-                            'direction': camera.get('direction', ''),
-                            'location': camera.get('latLng', {}).get('geography', {}).get('wellKnownText', '')
-                        }
-                except Exception as e:
-                    self.logger.error(f"Error processing camera {location}: {e}")
-                    continue
-            
-            # Fetch remaining pages
-            remaining = total_records - 10
-            if remaining > 0:
-                batch_size = 50  # Fetch more per request
-                for start in range(10, total_records, batch_size):
-                    data = await self.fetch_camera_data(start=start, length=batch_size)
-                    if data and 'data' in data:
-                        for camera in data['data']:
-                            try:
-                                camera_id = camera.get('id')
-                                location = camera.get('location')
-                                if not camera_id or not location:
-                                    continue
-                                    
-                                # Extract video URL from images array
-                                video_url = None
-                                for image in camera.get('images', []):
-                                    if image.get('videoUrl'):
-                                        video_url = image['videoUrl']
-                                        break
-                                        
-                                if video_url:
-                                    self.feeds[location] = {
-                                        'url': video_url,
-                                        'id': camera_id,
-                                        'roadway': camera.get('roadway', ''),
-                                        'direction': camera.get('direction', ''),
-                                        'location': camera.get('latLng', {}).get('geography', {}).get('wellKnownText', '')
-                                    }
-                            except Exception as e:
-                                self.logger.error(f"Error processing camera {location}: {e}")
-                                continue
-                        
-                        self.logger.info(f"Processed batch starting at {start}")
-                    else:
-                        self.logger.error(f"Failed to fetch batch starting at {start}")
-            
-            self.logger.info(f"Successfully loaded {len(self.feeds)} camera feeds")
-            
-            # Transform and save camera locations
-            self.camera_locations = self._transform_camera_data({
-                'data': list(self.feeds.values())
-            })
-            
-            return self.feeds
-            
-        except Exception as e:
-            self.logger.error(f"Error fetching camera feeds: {e}")
-            return {}
-        finally:
-            await self.close_session()
+        """Return already validated feeds instead of re-fetching"""
+        return self.validated_feeds
 
     def fetch_available_feeds_sync(self) -> Dict[str, Dict]:
         """
@@ -512,11 +519,20 @@ class CameraFeedSelector:
                 coords = wkt.replace('POINT (', '').replace(')', '').split()
                 if len(coords) == 2:
                     lng, lat = map(float, coords)
+                    
+                    # Extract video URL
+                    video_url = None
+                    for image in camera.get('images', []):
+                        if image.get('videoUrl'):
+                            video_url = image['videoUrl']
+                            break
+                    
                     # Format to match CameraLocation dataclass structure
                     locations[name] = {
                         "lat": float(lat),
                         "lng": float(lng),
-                        "name": str(name)
+                        "name": str(name),
+                        "url": video_url
                     }
                     self.logger.debug(f"Processed camera location: {name} -> {locations[name]}")
             except Exception as e:
@@ -563,20 +579,8 @@ class CameraFeedSelector:
             )
 
     def verify_feeds(self):
-        """Debug method to verify camera feeds"""
-        self.logger.info("\nVerifying camera feeds:")
-        self.logger.info(f"Total cameras with feeds: {len(self.feeds)}")
-        
-        # Print first few cameras as sample
-        for i, (name, feed) in enumerate(self.feeds.items()):
-            if i >= 5:  # Only show first 5
-                break
-            self.logger.info(
-                f"Camera: {name}\n"
-                f"  URL: {feed.get('url', 'No URL')}\n"
-                f"  ID: {feed.get('id', 'No ID')}\n"
-                f"  Roadway: {feed.get('roadway', 'No roadway')}"
-            )
+        """No need to re-verify since feeds are validated during initialization"""
+        pass
 
 def open_video_stream(url):
     """

@@ -1,10 +1,11 @@
 import cv2
 import requests
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 from typing import Dict, List, Optional
 import logging
+from logger_config import logger
 from ultralytics import YOLO
 import torch
 import asyncio
@@ -18,8 +19,8 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Set
 import smtplib
 from email.message import EmailMessage
-from multiprocessing import Queue  # Add this import
-from dashboard import Alert, event_queue, dashboard_state, Detection
+from multiprocessing import Queue, Manager  # Add this import
+from dashboard import Alert, event_queue, dashboard_state, Detection, serialize_event
 from rate_limiter import RateLimiter
 from vehicle_classifier import VehicleMakeModelClassifier
 
@@ -32,7 +33,7 @@ class CameraStatus:
     last_error: Optional[str] = None
 
 class VehicleDetector:
-    def __init__(self, sample_interval: int = 50, max_retries: int = 3, retry_delay: int = 5, alert_email: Optional[str] = None, alert_threshold: int = 5, event_queue: Optional[Queue] = None):
+    def __init__(self, sample_interval: int = 50, max_retries: int = 3, retry_delay: int = 5, alert_email: Optional[str] = None, alert_threshold: int = 5, event_queue: Optional[Queue] = None, shared_state: Optional[dict] = None):
         # Setup logging
         self.logger = self._setup_logging()
         
@@ -107,6 +108,23 @@ class VehicleDetector:
         self.camera_locations = {}
 
         self.event_queue = event_queue
+
+        # Add active camera tracking
+        self.active_cameras = set()
+        self.camera_status_changes = {}
+
+        # Initialize shared state
+        self.shared_state = shared_state or Manager().dict({
+            'cameras': {},
+            'detections': [],
+            'active_cameras': set(),
+            'errors': {},
+            'stats': {
+                'total_detections': 0,
+                'active_cameras': 0,
+                'uptime': datetime.now().isoformat()
+            }
+        })
 
     def _setup_logging(self) -> logging.Logger:
         """Setup logging with custom handler for dashboard"""
@@ -251,6 +269,60 @@ class VehicleDetector:
             self.logger.error(f"Error generating alternative URL: {e}")
             return original_url
 
+    async def initialize_camera(self, camera_id: str, camera_info: dict) -> None:
+        """Initialize a camera and emit camera ready event"""
+        try:
+            logger.info(f"Initializing camera: {camera_id}")
+            
+            # Initial camera data with 'initializing' status
+            camera_data = {
+                'id': camera_id,
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'name': camera_info.get('name', camera_id),
+                'active': True,
+                'location': camera_info.get('location', {}),
+                'stream_url': camera_info.get('url', ''),
+                'type': 'camera',
+                'status': 'initializing'
+            }
+            
+            # Update dashboard state and emit initial state
+            dashboard_state.update_camera(camera_id, camera_data)
+            event_queue.put(serialize_event('camera_status', {
+                'id': camera_id,
+                'status': 'initializing'
+            }))
+            
+            # Try to connect to stream
+            cap = await self.get_camera_stream(camera_info['url'])
+            if cap and cap.isOpened():
+                # Update status to active if connection successful
+                camera_data['status'] = 'active'
+                dashboard_state.update_camera(camera_id, camera_data)
+                event_queue.put(serialize_event('camera_status', {
+                    'id': camera_id,
+                    'status': 'active'
+                }))
+            else:
+                # Update status to error if connection fails
+                camera_data['status'] = 'error'
+                dashboard_state.update_camera(camera_id, camera_data)
+                event_queue.put(serialize_event('camera_status', {
+                    'id': camera_id,
+                    'status': 'error'
+                }))
+                
+            logger.info(f"Camera initialization completed: {camera_id}")
+            
+        except Exception as e:
+            logger.error(f"Error initializing camera {camera_id}: {e}")
+            # Update status to error on exception
+            event_queue.put(serialize_event('camera_status', {
+                'id': camera_id,
+                'status': 'error'
+            }))
+            raise
+
     async def monitor_feeds(self, cameras: Dict[str, Dict], target_vehicle: Dict):
         """Monitor camera feeds with error handling and recovery"""
         try:
@@ -311,6 +383,23 @@ class VehicleDetector:
     async def process_camera(self, name: str, camera: Dict, target_vehicle: Dict):
         """Process a single camera feed with enhanced error handling"""
         try:
+            # Update camera status to connecting
+            self._update_camera_status(name, 'connecting', camera)
+            
+            # Get video stream with retries
+            cap = await self.get_camera_stream(camera['url'])
+            if not cap:
+                self._update_camera_status(name, 'error', camera)
+                self.logger.warning(
+                    f"Camera {name} is currently unavailable. "
+                    f"Will retry in {self.stream_retry_delay} seconds"
+                )
+                return
+
+            # Update camera status to active once stream is established
+            self._update_camera_status(name, 'active', camera)
+            self.active_cameras.add(name)
+            
             # Update camera status in locations
             if name in self.camera_locations:
                 self.camera_locations[name].update({
@@ -319,15 +408,6 @@ class VehicleDetector:
                 })
                 # Update dashboard state
                 dashboard_state.camera_locations = self.camera_locations
-
-            # Get video stream with retries
-            cap = await self.get_camera_stream(camera['url'])
-            if not cap:
-                self.logger.warning(
-                    f"Camera {name} is currently unavailable. "
-                    f"Will retry in {self.stream_retry_delay} seconds"
-                )
-                return
 
             if name not in self.camera_status:
                 self.camera_status[name] = CameraStatus(name=name)
@@ -499,6 +579,8 @@ class VehicleDetector:
                 
                 raise
         except Exception as e:
+            self.active_cameras.discard(name)
+            self._update_camera_status(name, 'error', camera)
             self.logger.error(f"Error processing camera {name}: {e}")
             # Update camera status
             if name in self.camera_status:
@@ -531,7 +613,7 @@ class VehicleDetector:
             return False
 
     async def _save_matches(self, camera_name: str, img: Image.Image, matches: List[Dict]):
-        """Save matched vehicles with error handling"""
+        """Save matched vehicles and update shared state"""
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             safe_camera_name = camera_name.replace(' ', '_').replace('&', 'and')
@@ -584,6 +666,28 @@ class VehicleDetector:
                 except Exception as e:
                     self.logger.error(f"Error saving match {idx} from {camera_name}: {e}")
                     continue
+
+            # Update shared state with new detection
+            detections = list(self.shared_state.get('detections', []))
+            for match in matches:
+                detection_data = {
+                    'timestamp': datetime.now().isoformat(),
+                    'camera': camera_name,
+                    'type': match['type'],
+                    'confidence': float(match['confidence']),
+                    'make': match.get('make'),
+                    'model': match.get('model'),
+                    'location': match.get('camera_location', {})
+                }
+                detections.insert(0, detection_data)
+                
+            # Keep only recent detections (e.g., last 100)
+            self.shared_state['detections'] = detections[:100]
+            
+            # Update stats in shared state
+            stats = dict(self.shared_state['stats'])
+            stats['total_detections'] = stats.get('total_detections', 0) + len(matches)
+            self.shared_state['stats'] = stats
 
         except Exception as e:
             self.logger.error(f"Error saving matches from {camera_name}: {e}")
@@ -721,7 +825,7 @@ class VehicleDetector:
         return min(100.0, max(0.0, uptime_percentage))  # Ensure between 0-100%
 
     def _push_event(self, event_type: str, data: Dict):
-        """Push event to queue if available"""
+        """Push event to queue and update shared state"""
         if self.event_queue:
             try:
                 self.event_queue.put({
@@ -729,5 +833,67 @@ class VehicleDetector:
                     'data': data,
                     'timestamp': datetime.now().isoformat()
                 })
+                
+                # Update relevant shared state based on event type
+                if event_type == 'stats':
+                    stats = dict(self.shared_state['stats'])
+                    stats.update(data)
+                    self.shared_state['stats'] = stats
+                elif event_type == 'error':
+                    errors = dict(self.shared_state.get('errors', {}))
+                    errors[data.get('camera', 'system')] = {
+                        'message': data.get('message'),
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    self.shared_state['errors'] = errors
+
             except Exception as e:
                 self.logger.error(f"Failed to push event: {e}")
+
+    def _update_camera_status(self, name: str, status: str, camera: Dict):
+        """Update camera status in both local and shared state"""
+        try:
+            # Update local state
+            prev_status = self.camera_status_changes.get(name)
+            if prev_status != status:
+                self.logger.info(f"Camera {name} status changed: {prev_status} -> {status}")
+                self.camera_status_changes[name] = status
+                
+                # Update shared state
+                cameras = self.shared_state['cameras']
+                cameras[name] = {
+                    'id': name,
+                    'status': status,
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'location': camera.get('location', {}),
+                    'stream_url': camera.get('url', ''),
+                    'active': status == 'active'
+                }
+                self.shared_state['cameras'] = cameras  # Trigger update
+
+                # Update active cameras set in shared state
+                active_cameras = set(self.shared_state.get('active_cameras', set()))
+                if status == 'active':
+                    active_cameras.add(name)
+                else:
+                    active_cameras.discard(name)
+                self.shared_state['active_cameras'] = active_cameras
+                
+                # Update dashboard state
+                if self.event_queue:
+                    self.event_queue.put(serialize_event('camera_status', {
+                        'id': name,
+                        'status': status,
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'location': camera.get('location', {}),
+                        'stream_url': camera.get('url', '')
+                    }))
+                    
+                    # Update stats
+                    self._push_event('stats', {
+                        'active_cameras': len(active_cameras),
+                        'total_cameras': len(self.camera_status_changes)
+                    })
+                
+        except Exception as e:
+            self.logger.error(f"Error updating camera status: {e}")

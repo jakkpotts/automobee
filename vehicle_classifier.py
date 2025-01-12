@@ -3,6 +3,7 @@ from transformers import AutoImageProcessor, AutoModelForImageClassification
 import torch
 from PIL import Image
 import logging
+from logger_config import logger
 from typing import Dict, Optional
 from pathlib import Path
 import timm

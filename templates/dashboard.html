@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutomoBee Vehicle Detection</title>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script type="module" src="/static/js/dashboard.js"></script>
+    <!--     <script>window.addEventListener('error',function(e){if(e.filename&&e.filename.includes('hls.min.js.map')){e.preventDefault();return false;}});</script>
+ -->
+    {% if initialize_map %}
+    <script>
+        // Don't call initializeDashboard() directly
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.dashboardInitialized) {
+                initializeDashboard();
+                window.dashboardInitialized = true;
+            }
+        });
+    </script>
+{% endif %}
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
@@ -12,35 +28,7 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
             crossorigin=""></script>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        nord: {
-                            0: '#2E3440',
-                            1: '#3B4252',
-                            2: '#434C5E',
-                            3: '#4C566A',
-                            4: '#D8DEE9',
-                            5: '#E5E9F0',
-                            6: '#ECEFF4',
-                            7: '#8FBCBB',
-                            8: '#88C0D0',
-                            9: '#81A1C1',
-                            10: '#5E81AC',
-                            11: '#BF616A',
-                            12: '#D08770',
-                            13: '#EBCB8B',
-                            14: '#A3BE8C',
-                            15: '#B48EAD'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
@@ -80,14 +68,56 @@
         .map-container {
             position: relative;
             width: 100%;
-            height: 500px;
+            height: 600px;
             z-index: 1;
+            @apply shadow-lg rounded-lg overflow-hidden border border-nord-4;
+        }
+
+        /* Enhanced styles */
+        .sidebar-card {
+            @apply bg-white p-4 rounded-lg border border-nord-4 shadow-sm hover:border-nord-10 transition-colors;
+        }
+
+        .stats-card {
+            @apply bg-nord-5 p-4 rounded-lg hover:bg-nord-6 transition-colors;
+        }
+
+        .camera-item {
+            @apply flex items-center justify-between p-3 bg-white rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+        }
+
+        .alert-item {
+            @apply flex items-center justify-between p-3 bg-nord-11/10 text-nord-11 rounded-lg border border-nord-11/20;
+        }
+
+        .detection-card {
+            @apply bg-white p-4 rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+        }
+
+        /* Custom marker styles */
+        .custom-marker {
+            @apply bg-nord-10 text-white px-2 py-1 rounded-lg shadow-lg text-sm;
+            white-space: nowrap;
+        }
+
+        .custom-marker.active {
+            @apply bg-nord-14;
+        }
+
+        .detection-marker {
+            @apply bg-nord-11 text-white px-2 py-1 rounded-lg shadow-lg text-sm animate-pulse;
+            white-space: nowrap;
+        }
+
+        .custom-marker-container {
+            background: none !important;
+            border: none !important;
         }
     </style>
 </head>
 <body class="bg-nord-6">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-nord-4 shadow-sm">
+    <header class="fixed top-0 left-0 right=0 z-40 bg-white border-b border-nord-4 shadow-sm">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-nord-10 rounded-lg flex items-center justify-center">
@@ -117,15 +147,15 @@
         <aside class="w-80 bg-white border-r border-nord-4 p-6 overflow-y-auto">
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-nord-5 p-4 rounded-lg">
+                <div class="stats-card">
                     <p class="text-sm text-nord-3">Total Detections</p>
                     <h3 id="total-detections" class="text-2xl font-bold text-nord-10">0</h3>
                 </div>
-                <div class="bg-nord-5 p-4 rounded-lg">
+                <div class="stats-card">
                     <p class="text-sm text-nord-3">Active Cameras</p>
                     <h3 id="active-cameras" class="text-2xl font-bold text-nord-14">0</h3>
                 </div>
-                <div class="bg-nord-5 p-4 rounded-lg col-span-2">
+                <div class="stats-card col-span-2">
                     <p class="text-sm text-nord-3">Detection Rate</p>
                     <h3 id="detection-rate" class="text-2xl font-bold text-nord-15">0/hr</h3>
                 </div>
@@ -211,33 +241,6 @@
                 <video id="stream-player" controls autoplay muted class="w-full rounded-lg bg-nord-5"></video>
             </div>
         </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
-    <script>
-        // Suppress source map warning
-        window.addEventListener('error', function(e) {
-            if (e.filename && e.filename.includes('hls.min.js.map')) {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Initialize map only once when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            const map = L.map('main-map', {
-                center: [51.505, -0.09],
-                zoom: 13
-            });
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            // Store map instance globally if needed
-            window.mainMap = map;
-        });
-    </script>
+    </div>    
 </body>
 </html>
