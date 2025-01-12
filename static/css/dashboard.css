@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+
 .camera-marker {
     width: 24px;
     height: 24px;
@@ -98,4 +101,133 @@
     color: #000;
 }
 
-/* ...rest of existing styles... */
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Fix Leaflet controls for light theme */
+        .leaflet-control-zoom a {
+            @apply bg-white text-nord-0 border border-nord-4;
+        }
+
+        .leaflet-control-zoom a:hover {
+            @apply bg-nord-5;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            @apply bg-nord-5;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            @apply bg-nord-3 rounded-full;
+        }
+
+        /* Map container */
+        #main-map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            z-index: 1;
+            @apply shadow-lg rounded-lg overflow-hidden border border-nord-4;
+        }
+
+        /* Enhanced styles */
+        .sidebar-card {
+            @apply bg-white p-4 rounded-lg border border-nord-4 shadow-sm hover:border-nord-10 transition-colors;
+        }
+
+        .stats-card {
+            @apply bg-nord-5 p-4 rounded-lg hover:bg-nord-6 transition-colors;
+        }
+
+        .camera-item {
+            @apply flex items-center justify-between p-3 bg-white rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+        }
+
+        .alert-item {
+            @apply flex items-center justify-between p-3 bg-nord-11/10 text-nord-11 rounded-lg border border-nord-11/20;
+        }
+
+        .detection-card {
+            @apply bg-white p-4 rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+        }
+
+        /* Custom marker styles */
+        .custom-marker {
+            @apply bg-nord-10 text-white px-2 py-1 rounded-lg shadow-lg text-sm;
+            white-space: nowrap;
+        }
+
+        .custom-marker.active {
+            @apply bg-nord-14;
+        }
+
+        .detection-marker {
+            @apply bg-nord-11 text-white px-2 py-1 rounded-lg shadow-lg text-sm animate-pulse;
+            white-space: nowrap;
+        }
+
+        .custom-marker-container {
+            background: none !important;
+            border: none !important;
+        }
+
+        /* Add new header styles */
+        .header-shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .search-input {
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            transform: translateY(-1px);
+        }
+
+        .header-button {
+            @apply flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ease-in-out;
+        }
+
+        .header-button:hover {
+            transform: translateY(-1px);
+        }

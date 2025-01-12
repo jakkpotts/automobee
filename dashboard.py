@@ -92,35 +92,21 @@ def serialize_event(event_type: str, data: any) -> dict:
 def format_camera_data(camera_id: str, camera_info: dict) -> dict:
     """Format camera data for frontend consumption."""
     try:
-        # Ensure we have valid location data
-        location = camera_info.get('location', {})
-        if isinstance(location, str):
-            try:
-                location = json.loads(location)
-            except:
-                location = {'lat': 0, 'lng': 0}
-        elif not isinstance(location, dict):
-            location = {'lat': 0, 'lng': 0}
-
         return {
             "id": camera_id,
-            "name": camera_info.get('name', f'Camera {camera_id}'),
-            "location": location,
-            "active": camera_info.get('active', False),
-            "stream_url": camera_info.get('stream_url', ''),
-            "last_update": camera_info.get('last_update', 
-                          datetime.now(timezone.utc).isoformat())
+            "data": {  # Add this wrapper
+                "id": camera_id,
+                "name": camera_info.get('name', f'Camera {camera_id}'),
+                "location": camera_info.get('location', {'lat': 0, 'lng': 0}),
+                "active": camera_info.get('active', False),
+                "stream_url": camera_info.get('stream_url', ''),
+                "last_update": camera_info.get('last_update', 
+                              datetime.now(timezone.utc).isoformat())
+            }
         }
     except Exception as e:
         logger.error(f"Error formatting camera data: {str(e)}", exc_info=True)
-        return {
-            "id": camera_id,
-            "name": f"Camera {camera_id}",
-            "location": {"lat": 0, "lng": 0},
-            "active": False,
-            "stream_url": "",
-            "last_update": datetime.now(timezone.utc).isoformat()
-        }
+        return None
 
 class DashboardState:
     """Manages dashboard state."""
@@ -531,7 +517,19 @@ def _generate_events():
 # Update the route to use the new event stream
 @app.route('/stream')
 def stream():
-    return event_stream()
+    """Event stream endpoint."""
+    try:
+        return Response(
+            stream_with_context(_generate_events()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            }
+        )
+    except Exception as e:
+        logger.error(f"Stream error: {e}")
+        return Response("Error", status=500)
 
 # Health check endpoint
 @app.route('/health')

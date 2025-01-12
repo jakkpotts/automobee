@@ -354,24 +354,70 @@ const formatStreamUrl = (url) => {
 
 // Add handler for camera status updates
 const handleCameraStatus = (data) => {
-    const { id, status } = data;
-    console.log(`Camera ${id} status update:`, status);
+    console.log('Camera status update:', data);
+    const { id, status, name } = data;
     
+    // Update marker status
     const marker = dashboardState.markers[id];
     if (marker) {
-        // Update marker appearance
-        const settings = cameraMarkerSettings[status] || cameraMarkerSettings.connecting;
-        marker.getElement().className = settings.className;
-        
-        // Update tooltip
-        const tooltip = `${dashboardState.cameras[id]?.name || id} (${status})`;
-        marker.setTooltipContent(tooltip);
+        // Get marker element
+        const markerElement = marker.getElement();
+        if (markerElement) {
+            // Remove all status classes first
+            markerElement.classList.remove('connecting', 'active', 'error', 'processing');
+            // Add new status class
+            markerElement.classList.add(status);
+            
+            // Update marker color based on status
+            const settings = cameraMarkerSettings[status] || cameraMarkerSettings.connecting;
+            markerElement.style.backgroundColor = settings.color;
+            
+            // Update tooltip
+            const tooltip = `${name || id} (${status})`;
+            if (marker.getTooltip()) {
+                marker.setTooltipContent(tooltip);
+            } else {
+                marker.bindTooltip(tooltip);
+            }
+        }
     }
     
-    // Update camera info in state
-    if (dashboardState.cameras[id]) {
-        dashboardState.cameras[id].status = status;
+    // Update camera card
+    updateCameraCard(id, data);
+};
+
+const updateCameraCard = (cameraId, data) => {
+    const camerasContainer = document.getElementById('camera-list');
+    if (!camerasContainer) return;
+
+    let card = document.getElementById(`camera-card-${cameraId}`);
+    const { name, status, timestamp, stream_url } = data;
+
+    if (!card) {
+        // Create new card if it doesn't exist
+        card = document.createElement('div');
+        card.id = `camera-card-${cameraId}`;
+        card.className = 'camera-card';
+        camerasContainer.appendChild(card);
     }
+
+    // Update card content
+    card.innerHTML = `
+        <div class="camera-card ${status}">
+            <div class="camera-header">
+                <h3>${name || `Camera ${cameraId}`}</h3>
+                <span class="status-badge ${status}">${status}</span>
+            </div>
+            <div class="camera-details">
+                <p>Last update: ${new Date(timestamp).toLocaleTimeString()}</p>
+                ${stream_url ? `
+                    <button class="stream-button" onclick="openCameraStream('${cameraId}', '${stream_url}', '${name}')">
+                        View Stream
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
 };
 
 // Add function to handle camera stream modal
@@ -540,11 +586,59 @@ const handleAlert = (alert) => {
     }
 };
 
+// Add this CSS to your stylesheet
+const addStyles = () => {
+    const style = document.createElement('style');
+    style.textContent = `
+        .camera-card {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin: 0.5rem;
+            border-radius: 0.5rem;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .camera-card.active { border-left: 4px solid #4CAF50; }
+        .camera-card.error { border-left: 4px solid #F44336; }
+        .camera-card.connecting { border-left: 4px solid #FFA500; }
+        .camera-card.processing { border-left: 4px solid #2196F3; }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active { background: #E8F5E9; color: #2E7D32; }
+        .status-badge.error { background: #FFEBEE; color: #C62828; }
+        .status-badge.connecting { background: #FFF3E0; color: #EF6C00; }
+        .status-badge.processing { background: #E3F2FD; color: #1565C0; }
+
+        .camera-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .camera-marker.active { background-color: #4CAF50 !important; }
+        .camera-marker.error { background-color: #F44336 !important; }
+        .camera-marker.connecting { background-color: #FFA500 !important; }
+        .camera-marker.processing { background-color: #2196F3 !important; }
+    `;
+    document.head.appendChild(style);
+};
+
 // Initialize the dashboard
 const initializeDashboard = async () => {
     console.log('Starting dashboard initialization...');
     
     try {
+        addStyles();
         await waitForLeaflet();
         console.log('Leaflet loaded successfully');
 
