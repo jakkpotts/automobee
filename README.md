@@ -1,6 +1,6 @@
 # AutomoBee Vehicle Detection System
 
-AutomoBee is a real-time traffic monitoring system that analyzes the city's public cctv camera network a modern web interface for locating, tracking, and monitoring a target vehicle's location using computer vision and AI.
+AutomoBee is a real-time traffic monitoring system that analyzes the city's public cctv camera network. It will locate, track, and monitor a target vehicle's location using computer vision and AI.
 
 ## Features
 
@@ -20,7 +20,6 @@ AutomoBee is a real-time traffic monitoring system that analyzes the city's publ
   - Live map powered by Leaflet.js for geographic visualization
   - Real-time data updates using WebSocket
   - HLS.js integration for video streaming
-  - Nord color theme for consistent visual design
 
 - **Key Components**
   - Live camera feed manager
@@ -70,7 +69,7 @@ Each file serves a specific purpose:
 
 ## Security Notes
 
-- Environment variables and secrets should be properly configured
+- Environment variables and keys should be properly configured
 - Model files are excluded from version control
 - Sensitive configuration files are gitignored
 
