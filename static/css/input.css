@@ -4,15 +4,16 @@
 
 body {
     font-family: 'Inter', sans-serif;
+    @apply bg-nord-0 text-nord-6;
 }
 
-/* Fix Leaflet controls for light theme */
+/* Fix Leaflet controls for dark theme */
 .leaflet-control-zoom a {
-    @apply bg-white text-nord-0 border border-nord-4;
+    @apply bg-nord-1 text-nord-6 border border-nord-2;
 }
 
 .leaflet-control-zoom a:hover {
-    @apply bg-nord-5;
+    @apply bg-nord-2;
 }
 
 /* Custom scrollbar */
@@ -21,7 +22,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    @apply bg-nord-5;
+    @apply bg-nord-2;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -40,20 +41,20 @@ body {
     width: 100%;
     height: 600px;
     z-index: 1;
-    @apply shadow-lg rounded-lg overflow-hidden border border-nord-4;
+    @apply shadow-lg rounded-lg overflow-hidden border border-nord-2;
 }
 
 /* Enhanced styles */
 .sidebar-card {
-    @apply bg-white p-4 rounded-lg border border-nord-4 shadow-sm hover:border-nord-10 transition-colors;
+    @apply bg-nord-1 p-4 rounded-lg border border-nord-2 shadow-sm hover:border-nord-8 transition-colors;
 }
 
 .stats-card {
-    @apply bg-nord-5 p-4 rounded-lg hover:bg-nord-6 transition-colors;
+    @apply bg-nord-2 p-4 rounded-lg hover:bg-nord-3 transition-colors;
 }
 
 .camera-item {
-    @apply flex items-center justify-between p-3 bg-white rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+    @apply flex items-center justify-between p-3 bg-nord-1 rounded-lg border border-nord-2 hover:border-nord-8 transition-colors;
 }
 
 .alert-item {
@@ -61,34 +62,27 @@ body {
 }
 
 .detection-card {
-    @apply bg-white p-4 rounded-lg border border-nord-4 hover:border-nord-10 transition-colors;
+    @apply bg-nord-1 p-4 rounded-lg border border-nord-2 hover:border-nord-8 transition-colors;
 }
 
 /* Custom marker styles */
 .custom-marker {
-    @apply bg-nord-10 text-white px-2 py-1 rounded-lg shadow-lg text-sm;
-    white-space: nowrap;
+    @apply bg-nord-8 px-2 py-1 rounded-lg text-sm text-nord-0 shadow-lg whitespace-nowrap;
 }
 
 .custom-marker.active {
     @apply bg-nord-14;
 }
 
-.detection-marker {
-    @apply bg-nord-11 text-white px-2 py-1 rounded-lg shadow-lg text-sm animate-pulse;
-    white-space: nowrap;
+.custom-marker.error {
+    @apply bg-nord-11;
 }
 
-.custom-marker-container {
-    background: none !important;
-    border: none !important;
+.custom-marker.connecting {
+    @apply bg-nord-13;
 }
 
-/* Add new header styles */
-.header-shadow {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-}
-
+/* Logo shine effect */
 .logo-shine {
     position: relative;
     overflow: hidden;
@@ -112,10 +106,15 @@ body {
 }
 
 @keyframes shine {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
+    0% {
+        transform: translateX(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) rotate(45deg);
+    }
 }
 
+/* Search input */
 .search-input {
     transition: all 0.2s ease;
 }
@@ -124,10 +123,32 @@ body {
     transform: translateY(-1px);
 }
 
+/* Header buttons */
 .header-button {
-    @apply flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ease-in-out;
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200;
 }
 
 .header-button:hover {
     transform: translateY(-1px);
+}
+
+/* Map theme overrides */
+.leaflet-container {
+    @apply bg-nord-0;
+}
+
+.leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.8) contrast(0.9);
+}
+
+.leaflet-marker-pane {
+    filter: none;
+}
+
+.leaflet-popup-content-wrapper {
+    @apply bg-nord-1 text-nord-6 border border-nord-2;
+}
+
+.leaflet-popup-tip {
+    @apply bg-nord-1 border border-nord-2;
 }

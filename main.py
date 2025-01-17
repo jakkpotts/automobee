@@ -1,232 +1,168 @@
-from calendar import c
-from vehicle_detector import VehicleDetector
-from feed_selector import CameraFeedSelector
-from dashboard import run_dashboard, dashboard_bp, dashboard_state, serialize_event, event_queue, Alert
 import asyncio
-import threading
-import logging
-from logger_config import logger  # Import the shared logger
-import time
+import random
+import os
 from datetime import datetime
-from datetime import timezone
-from app_factory import app
-import json
+from dotenv import load_dotenv
+from src.backend.core.automobee import AutomoBee
+from logger_config import logger
+from src.backend.services.database_service import DatabaseService
 
-app.register_blueprint(dashboard_bp)
+# Load environment variables
+load_dotenv()
+
+# Database configuration
+DB_URL = os.getenv('DATABASE_URL', 'sqlite:///automobee.db')
 
 async def main():
-    detector = None
+    """Main entry point for the AutomoBee system"""
     try:
-        # Update target vehicle configuration to include specific F-150 variants
-        target_vehicle = {
-            "make": "ford",
-            "model": "f150",
-            "confidence_threshold": 0.65,
-            "type": "truck"
-        }
-
-        # Initialize components with validated feeds
-        feed_selector = CameraFeedSelector()
+        # Initialize AutomoBee system
+        system = AutomoBee(DB_URL)
         
-        # Load all cameras from config file first
-        logger.info("Loading cameras from config...")
-        try:
-            with open('config/camera_locations.json') as f:
-                camera_config = json.load(f)
-                logger.info(f"Successfully loaded {len(camera_config)} cameras from config")
-        except Exception as e:
-            logger.error(f"Error loading camera config: {e}")
-            camera_config = {}
-        
-        if not camera_config:
-            logger.error("No cameras found in config file")
-            return
-        
-        # Update dashboard with all available cameras first
-        for camera_id, camera_info in camera_config.items():
-            try:
-                camera_data = {
-                    'id': camera_id,
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'name': camera_info.get('name', camera_id),
-                    'active': True,
-                    'location': {
-                        'lat': float(camera_info['lat']),
-                        'lng': float(camera_info['lng'])
-                    },
-                    'stream_url': camera_info.get('url', ''),
-                    'type': 'camera'
-                }
+        async with system.run() as automobee:
+            # System is now running with all components initialized
+            logger.info("AutomoBee system running. Press Ctrl+C to exit.")
+            
+            # Keep the system running
+            while True:
+                await asyncio.sleep(1)
                 
-                logger.info(f"Adding camera to dashboard: {camera_id}")
-                dashboard_state.update_camera(camera_id, camera_data)
-                
-                # Emit individual map update for debugging
-                event_queue.put(serialize_event('map_update', {
-                    'points': [{
-                        'id': camera_id,
-                        'name': camera_data['name'],
-                        'latitude': float(camera_info['lat']),
-                        'longitude': float(camera_info['lng']),
-                        'type': 'camera',
-                        'stream_url': camera_info.get('url', '')
-                    }]
-                }))
-                
-                logger.info(f"Added camera {camera_id} at {camera_data['location']}")
-            except Exception as e:
-                logger.error(f"Error processing camera {camera_id}: {e}")
-                continue
-
-        # Now continue with feed selection and monitoring
-        feeds = feed_selector.validated_feeds
-        if not feeds:
-            await feed_selector.update_feeds()
-            feeds = feed_selector.feeds
-        if not feeds:
-            logger.error("No valid camera feeds found in configuration")
-            return
-            
-        logger.info(f"Found {len(feeds)} valid feeds")
-        
-        # Skip verification since feeds are already validated
-        # Select strategic cameras
-        logger.info("Selecting strategic cameras...")
-        strategic_cameras = feed_selector.select_strategic_cameras()
-        logger.info(f"Selected {len(strategic_cameras)} strategic cameras")
-        
-        # Initialize detector and start monitoring
-        detector = VehicleDetector(
-            sample_interval=50,
-            max_retries=3,
-            retry_delay=5,
-            alert_email="your.email@domain.com",
-            alert_threshold=5
-        )
-        
-        # Create monitoring task
-        monitor_task = asyncio.create_task(detector._monitor_health())
-        
-        try:
-            # Start monitoring - this will now handle camera initialization
-            await detector.monitor_feeds(strategic_cameras, target_vehicle)
-        finally:
-            # Cancel monitoring task if it's still running
-            monitor_task.cancel()
-            try:
-                await monitor_task
-            except asyncio.CancelledError:
-                pass
-        
-    except Exception as e:
-        logger.error("Error in main:", exc_info=True)
-        if detector:
-            try:
-                await detector.close_session()
-            except Exception as cleanup_error:
-                logger.error(f"Error during cleanup: {cleanup_error}")
-        raise
-
-def run_detection(shared_state):
-    """Run the detection process with shared state"""
-    try:
-        async def run_async():
-            detector = VehicleDetector(
-                sample_interval=50,
-                max_retries=3,
-                retry_delay=5,
-                alert_email="your.email@domain.com",
-                alert_threshold=5,
-                shared_state=shared_state
-            )
-            
-            # Create monitoring task
-            monitor_task = asyncio.create_task(detector._monitor_health())
-            
-            try:
-                await main()
-            finally:
-                monitor_task.cancel()
-                try:
-                    await monitor_task
-                except asyncio.CancelledError:
-                    pass
-                await detector.close_session()
-
-        asyncio.run(run_async())
-    except Exception as e:
-        logger.error(f"Detection error: {e}")
-        shared_state['error'] = str(e)
-
-def start_dashboard(shared_state):
-    """Start dashboard with auto-restart capability"""
-    while True:
-        try:
-            from dashboard import run_dashboard
-            # Pass shared state to dashboard
-            run_dashboard(shared_state)
-        except Exception as e:
-            logger.error(f"Dashboard crashed: {e}. Restarting in 5 seconds...")
-            time.sleep(5)
-
-if __name__ == "__main__":
-    try:
-        # Create shared manager for cross-process state
-        import multiprocessing
-        from multiprocessing import Manager
-        
-        manager = Manager()
-        shared_state = manager.dict()
-        
-        # Load cameras first
-        logger.info("Loading initial camera data...")
-        try:
-            with open('config/camera_locations.json') as f:
-                camera_config = json.load(f)
-                
-            # Pre-populate shared state with cameras
-            shared_state['cameras'] = {
-                camera_id: {
-                    'id': camera_id,
-                    'name': camera_info.get('name', camera_id),
-                    'active': True,
-                    'location': {
-                        'lat': float(camera_info['lat']),
-                        'lng': float(camera_info['lng'])
-                    },
-                    'stream_url': camera_info.get('url', ''),
-                    'type': 'camera'
-                }
-                for camera_id, camera_info in camera_config.items()
-            }
-            shared_state['detections'] = []
-            
-            logger.info(f"Loaded {len(shared_state['cameras'])} cameras into shared state")
-            
-        except Exception as e:
-            logger.error(f"Error loading camera config: {e}")
-            shared_state['cameras'] = {}
-            shared_state['detections'] = []
-
-        # Start dashboard with populated shared state
-        dashboard_process = multiprocessing.Process(
-            target=start_dashboard,
-            args=(shared_state,),
-            daemon=True
-        )
-        dashboard_process.start()
-        
-        # Give the dashboard time to start
-        time.sleep(3)
-        
-        # Run detection with shared state
-        run_detection(shared_state)
-        
     except KeyboardInterrupt:
         logger.info("Shutdown requested")
     except Exception as e:
         logger.error("Error in main process:", exc_info=True)
+        raise
+
+async def test_stream_data(enable_database: bool = False):
+    """Test function to verify camera stream data retrieval and dashboard.
+    
+    Args:
+        enable_database (bool): Enable actual database operations. Defaults to False.
+    """
+    try:
+        logger.info("Starting test stream data simulation")
+        
+        # Initialize database if enabled
+        db_service = None
+        if enable_database:
+            logger.info(f"Initializing database connection: {DB_URL}")
+            db_service = DatabaseService(DB_URL)
+        
+        # Simulate camera configurations
+        test_cameras = {
+            "cam_001": {
+                "name": "Downtown Camera 1",
+                "lat": 36.1699,
+                "lng": -115.1398,
+                "stream_url": "rtsp://dummy-1",
+                "status": "active"
+            },
+            "cam_002": {
+                "name": "Strip Camera 2",
+                "lat": 36.1723,
+                "lng": -115.1352,
+                "stream_url": "rtsp://dummy-2",
+                "status": "connecting"
+            },
+            "cam_003": {
+                "name": "Airport Camera 3",
+                "lat": 36.0800,
+                "lng": -115.1522,
+                "stream_url": "rtsp://dummy-3",
+                "status": "error"
+            }
+        }
+        
+        # Simulate vehicle detections
+        vehicle_types = ["car", "truck", "motorcycle", "bus"]
+        makes = ["Ford", "Toyota", "Honda", "Tesla"]
+        models = ["F-150", "Camry", "Civic", "Model 3"]
+        
+        logger.info("Initializing test environment")
+        print("\nTest Environment:")
+        print("----------------")
+        print(f"Database URL: {DB_URL}")
+        print(f"Total cameras: {len(test_cameras)}")
+        print("Camera Locations:")
+        for cam_id, cam in test_cameras.items():
+            print(f"- {cam['name']}: ({cam['lat']}, {cam['lng']})")
+        
+        # Simulate real-time updates
+        print("\nSimulating real-time updates (press Ctrl+C to stop)...")
+        update_count = 0
+        
+        while True:
+            update_count += 1
+            
+            # Simulate camera status changes
+            for cam_id in test_cameras:
+                if random.random() < 0.1:  # 10% chance of status change
+                    test_cameras[cam_id]["status"] = random.choice(["active", "connecting", "error"])
+            
+            # Simulate vehicle detection
+            if random.random() < 0.3:  # 30% chance of detection
+                detection = {
+                    "camera_id": random.choice(list(test_cameras.keys())),
+                    "timestamp": datetime.now().isoformat(),
+                    "vehicle_type": random.choice(vehicle_types),
+                    "make": random.choice(makes),
+                    "model": random.choice(models),
+                    "confidence": round(random.uniform(0.65, 0.98), 2),
+                    "location": {
+                        "lat": random.uniform(36.0800, 36.1723),
+                        "lng": random.uniform(-115.1522, -115.1352)
+                    }
+                }
+                print(f"\nDetection {update_count}: {detection['make']} {detection['model']} "
+                      f"({detection['confidence']:.2f} confidence)")
+                
+                # Store in database if enabled
+                if enable_database and db_service:
+                    try:
+                        await db_service.store_detection(detection["camera_id"], detection)
+                        logger.info("Detection stored in database")
+                    except Exception as e:
+                        logger.error(f"Failed to store detection in database: {e}")
+                else:
+                    logger.info("Database disabled, skipping storage")
+            
+            # Simulate system metrics
+            metrics = {
+                "cpu_usage": round(random.uniform(20, 80), 1),
+                "memory_usage": round(random.uniform(30, 70), 1),
+                "gpu_utilization": round(random.uniform(40, 90), 1),
+                "detection_rate": round(random.uniform(10, 30), 1),
+                "active_streams": len([c for c in test_cameras.values() if c["status"] == "active"]),
+                "total_detections": update_count
+            }
+            
+            if update_count % 5 == 0:
+                print(f"\nSystem Metrics:")
+                print(f"CPU: {metrics['cpu_usage']}% | "
+                      f"Memory: {metrics['memory_usage']}% | "
+                      f"GPU: {metrics['gpu_utilization']}%")
+                # Log metrics to database (simulated)
+                logger.info(f"Logging metrics to database: {metrics}")
+            
+            await asyncio.sleep(2)  # Update every 2 seconds
+            
+    except KeyboardInterrupt:
+        logger.info("Test stream simulation stopped by user")
+        print("\nTest simulation stopped")
+    except Exception as e:
+        logger.error(f"Error in test stream simulation: {str(e)}")
+        raise
     finally:
-        if 'dashboard_process' in locals():
-            dashboard_process.terminate()
-            dashboard_process.join(timeout=5)
+        # Cleanup database connection if it was initialized
+        if enable_database and db_service:
+            await db_service.close()
+
+if __name__ == "__main__":
+    try:
+        # Run test function with database disabled by default
+        asyncio.run(test_stream_data(enable_database=False))
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        exit(1)

@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    @apply antialiased;
+  }
+
+  html,
+  body {
+    @apply h-full overflow-hidden;
+  }
+
+  #root {
+    @apply h-full;
+  }
+
+  /* Scrollbar Styles */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+
+  /* Leaflet Map Styles */
+  .leaflet-container {
+    @apply h-full w-full rounded-lg;
+  }
+
+  .leaflet-popup-content-wrapper {
+    @apply rounded-lg shadow-lg;
+  }
+
+  .leaflet-popup-content {
+    @apply m-0;
+  }
+
+  /* Command Menu Styles */
+  [cmdk-root] {
+    @apply w-full;
+  }
+
+  [cmdk-input] {
+    @apply w-full text-gray-900 placeholder-gray-400;
+  }
+
+  [cmdk-item] {
+    @apply cursor-pointer;
+  }
+
+  [cmdk-group-heading] {
+    @apply px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider;
+  }
+
+  /* Dark Mode Overrides */
+  .dark [cmdk-input] {
+    @apply text-white placeholder-gray-400;
+  }
+
+  .dark .leaflet-popup-content-wrapper {
+    @apply bg-gray-800 text-white;
+  }
+
+  .dark .leaflet-popup-tip {
+    @apply bg-gray-800;
+  }
+}

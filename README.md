@@ -1,78 +1,171 @@
 # AutomoBee Vehicle Detection System
 
-AutomoBee is a real-time traffic monitoring system that analyzes the city's public cctv camera network. It will locate, track, and monitor a target vehicle's location using computer vision and AI.
-
-## Features
-
-- Real-time vehicle detection and classification
-- Real-time vehicle tracking
-- Live map visualization
-- Real-time statistics and monitoring
-- Supports multiple camera feed analysis
-- Responsive layout supporting both desktop and mobile
+Real-time traffic monitoring system using computer vision and AI, with WebSocket-based communication for efficient real-time updates.
 
 ## Architecture
 
+### Backend
+
+- **Core Controller (`AutomoBee`)**
+  - Centralized system initialization and coordination
+  - Resource management and cleanup
+  - Component lifecycle management
+
+- **Services**
+  - WebSocket server for real-time communication
+  - Async stream manager for video processing
+  - Zone-based detection service
+  - Performance monitoring and optimization
+
 ### Frontend
 
-- **Dashboard UI**
-  - Built with vanilla JavaScript, HTML5 and Tailwind CSS
-  - Live map powered by Leaflet.js for geographic visualization
-  - Real-time data updates using WebSocket
-  - HLS.js integration for video streaming
+- **Components**
+  - Real-time dashboard with WebSocket updates
+  - Interactive map with zone visualization
+  - HLS video stream viewer
+  - Performance metrics display
 
-- **Key Components**
-  - Live camera feed manager
-  - Interactive map with camera locations target vehicle detected zones
-  - Real-time detection statistics
-  - Camera feed status monitoring
-  - Alert system for detections
+### Features
 
-### Data Handling
+- Asynchronous video stream processing
+- Batch-based vehicle detection
+- Zone-based monitoring
+- Real-time WebSocket updates
+- Automatic performance optimization
+- Resource usage monitoring
+- Comprehensive error handling
 
-- Video stream processing using HLS (HTTP Live Streaming)
-- Efficient buffering and frame processing
-- Camera feed management
-- Detection metadata handling
+## Setup
 
-## Project Structure
-
-```text
-automobee/
-├── main.py             # Application entry point and process management
-├── dashboard.py        # Dashboard web server and state management
-├── vehicle_detect.py   # Vehicle detection and classification logic
-├── stream_handler.py   # Video stream processing and management
-├── config.py          # Configuration and environment settings
-├── templates/
-│   └── dashboard.html # Main dashboard interface template
-├── static/
-│   ├── css/
-│   │   └── leaflet.css # Map styling and controls
-│   └── js/
-│       ├── dashboard.js # Dashboard UI logic and controls
-│       └── hls.min.js  # HTTP Live Streaming client
-└── .gitignore         # Version control exclusions
+1. Create Python virtual environment:
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
 ```
 
-Each file serves a specific purpose:
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-- `dashboard.py`: Dashboard web server and state management
-- `dashboard.py`: Implements web server with Flask, handles real-time updates and state
-- `vehicle_detect.py`: Core detection and classification algorithms
-- `stream_handler.py`: Manages video stream processing and buffering
-- `config.py`: Environment and application configuration
-- `dashboard.html`: Main dashboard interface template built with Tailwind CSS
-- `dashboard.js`: Implements map functionality and UI interactions
-- `leaflet.css`: Provides map styling and controls
-- `hls.min.js`: Enables video stream playback
+3. Configure environment:
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
 
-## Security Notes
+4. Initialize configuration:
+```bash
+mkdir -p config logs
+cp config/cameras.json.example config/cameras.json
+# Edit cameras.json with your camera configurations
+```
 
-- Environment variables and keys should be properly configured
-- Model files are excluded from version control
-- Sensitive configuration files are gitignored
+5. Start the system:
+```bash
+python main.py
+```
+
+## Configuration
+
+### Camera Configuration (config/cameras.json)
+```json
+{
+  "camera_id": {
+    "name": "Camera Name",
+    "lat": 36.1699,
+    "lng": -115.1398,
+    "stream_url": "rtsp://camera-url",
+    "fps": 30,
+    "zones": [
+      {
+        "name": "Zone 1",
+        "coordinates": [
+          {"lat": 36.1699, "lng": -115.1398},
+          {"lat": 36.1700, "lng": -115.1399},
+          {"lat": 36.1701, "lng": -115.1397}
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Environment Variables
+
+See `.env.example` for all available configuration options.
+
+## Development
+
+### Project Structure
+```
+automobee/
+├── src/
+│   ├── backend/
+│   │   ├── core/
+│   │   │   └── automobee.py
+│   │   └── services/
+│   │       ├── detection_service.py
+│   │       ├── stream_manager.py
+│   │       ├── websocket_server.py
+│   │       └── metrics_collector.py
+│   └── frontend/
+│       ├── components/
+│       │   ├── map.js
+│       │   └── stream-viewer.js
+│       └── services/
+│           └── websocket.js
+├── config/
+│   ├── cameras.json
+│   └── logging.yaml
+├── models/
+│   ├── yolov8m.pt
+│   └── vehicle_classifier.pt
+└── logs/
+    ├── automobee.log
+    ├── error.log
+    └── metrics.log
+```
+
+### Testing
+
+Run tests with:
+```bash
+pytest tests/
+```
+
+### Monitoring
+
+Access metrics and health information:
+- System metrics: `logs/metrics.log`
+- Application logs: `logs/automobee.log`
+- Error tracking: `logs/error.log`
+
+## Performance Optimization
+
+The system automatically optimizes:
+- Batch processing size
+- Frame skip rate
+- Detection confidence threshold
+- Resource utilization
+
+Monitor performance through:
+- Detection rate per camera
+- Classification confidence
+- Processing latency
+- Memory usage
+- GPU utilization
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-MIT standard license. Open source is the way.
+MIT License - see LICENSE file for details

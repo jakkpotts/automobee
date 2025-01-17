@@ -125,3 +125,6 @@ node_modules
 static/css/output.css
 package-lock.json
 package.json
+.cursorcontext.json
+.cursorrules
+docs/PDR.md

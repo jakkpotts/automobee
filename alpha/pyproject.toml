@@ -1,0 +1,6 @@
+[tool.pylance]
+python.analysis.extraPaths = ["."]
+
+[tool.pyright]
+include = ["src", "scripts"]
+extraPaths = ["."] 

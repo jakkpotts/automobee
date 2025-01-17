@@ -14,7 +14,7 @@
     justify-content: center;
     color: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.5s ease-in-out;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     /* Default state - yellow */
     background: #f6e05e;
@@ -230,4 +230,30 @@
 
         .header-button:hover {
             transform: translateY(-1px);
+        }
+
+        .camera-marker.in-active-zone {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px rgba(94, 129, 172, 0.5);
+            z-index: 1000;
+        }
+
+        .camera-marker.inactive-zone {
+            opacity: 0.5;
+            transform: scale(0.9);
+        }
+
+        .zone-transition {
+            transition: all 0.75s ease-in-out;
+        }
+
+        @keyframes zone-fade-in {
+            from {
+                stroke-opacity: 0;
+                fill-opacity: 0;
+            }
+            to {
+                stroke-opacity: 1;
+                fill-opacity: 0.15;
+            }
         }

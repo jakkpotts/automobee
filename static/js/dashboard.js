@@ -16,24 +16,28 @@ const mapConfig = {
     center: [36.1699, -115.1398], // Las Vegas center
     zoom: 11,
     minZoom: 3,
-    maxZoom: 18
+    maxZoom: 18,
+    // Dark theme settings
+    preferCanvas: true,
+    renderer: L.canvas({ tolerance: 5 }),
+    zoomControl: false // We'll add custom styled controls
 };
 
 const cameraMarkerSettings = {
     connecting: {
         className: 'custom-marker connecting',
         riseOnHover: true,
-        color: '#FFA500'  // Orange for connecting
+        color: '#EBCB8B'  // Nord13 for connecting
     },
     active: {
         className: 'custom-marker active',
         riseOnHover: true,
-        color: '#4CAF50'  // Green for active
+        color: '#A3BE8C'  // Nord14 for active
     },
     error: {
         className: 'custom-marker error',
         riseOnHover: true,
-        color: '#F44336'  // Red for error
+        color: '#BF616A'  // Nord11 for error
     }
 };
 
@@ -95,8 +99,17 @@ const initializeMap = async () => {
         dashboardState.map = L.map('main-map', mapConfig);
         console.log('Map created:', dashboardState.map);
 
+        // Add dark theme tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap contributors',
+            className: 'dark-tiles'
+        }).addTo(dashboardState.map);
+
+        // Add custom zoom controls
+        L.control.zoom({
+            position: 'bottomright',
+            zoomInText: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>',
+            zoomOutText: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>'
         }).addTo(dashboardState.map);
         
         console.log('Map initialization complete');
@@ -192,21 +205,37 @@ const updateSingleCamera = (cameraData) => {
 
     console.log('Updating single camera:', cameraData);
 
+    // Validate camera data
+    if (!cameraData || !cameraData.location || 
+        typeof cameraData.location.lat === 'undefined' || 
+        typeof cameraData.location.lng === 'undefined') {
+        console.error('Invalid camera data:', cameraData);
+        return;
+    }
+
     const position = [cameraData.location.lat, cameraData.location.lng];
     const cameraId = cameraData.id;
 
-    if (dashboardState.markers[cameraId]) {
-        console.log('Updating existing marker:', cameraId);
-        dashboardState.markers[cameraId].setLatLng(position);
-    } else {
-        console.log('Creating new marker:', cameraId);
-        const marker = createCustomMarker(
-            'camera',
-            cameraData.name || cameraId,
-            position
-        );
-        dashboardState.markers[cameraId] = marker;
-        marker.addTo(dashboardState.map);
+    try {
+        if (dashboardState.markers[cameraId]) {
+            console.log('Updating existing marker:', cameraId);
+            dashboardState.markers[cameraId].setLatLng(position);
+        } else {
+            console.log('Creating new marker:', cameraId);
+            const marker = createCustomMarker(
+                'camera',
+                cameraData.name || cameraId,
+                position,
+                cameraData.status || 'initializing'
+            );
+            dashboardState.markers[cameraId] = marker;
+            marker.addTo(dashboardState.map);
+        }
+
+        // Update cameras state
+        dashboardState.cameras[cameraId] = cameraData;
+    } catch (error) {
+        console.error('Error in updateSingleCamera:', error);
     }
 };
 
@@ -248,22 +277,33 @@ const updateDashboardStats = (stats) => {
 // Handle stream data
 const handleStreamData = (data) => {
     try {
-        console.log('Received stream data:', data.type);
+        console.log('Received stream data:', data);
         
+        if (!data || !data.type) {
+            console.warn('Invalid stream data received');
+            return;
+        }
+
         switch (data.type) {
             case 'initial_state':
-                // Handle initial state - set up cameras and map
-                if (data.data && data.data.cameras) {
+                if (data.data?.cameras) {
                     Object.entries(data.data.cameras).forEach(([id, camera]) => {
-                        updateSingleCamera(camera);
-                    });
-                    // Update stats
-                    updateDashboardStats({
-                        activeCameras: Object.keys(data.data.cameras).length
+                        if (camera) {
+                            // Ensure camera has proper location structure
+                            const cameraData = {
+                                id: id,
+                                location: {
+                                    lat: camera.lat || camera.latitude || (camera.location && camera.location.lat),
+                                    lng: camera.lng || camera.longitude || (camera.location && camera.location.lng)
+                                },
+                                name: camera.name || `Camera ${id}`,
+                                status: camera.status || 'initializing'
+                            };
+                            updateSingleCamera(cameraData);
+                        }
                     });
                 }
                 break;
-                
             case 'camera_feed':
             case 'camera_update':    
                 updateCameraFeed(data.data);
@@ -545,12 +585,12 @@ const createDetectionCard = (detection) => {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
             <div>
-                <h4 class="font-semibold text-nord-0">${detection.type}</h4>
-                <p class="text-sm text-nord-3">${detection.camera}</p>
+                <h4 class="font-semibold text-nord-6">${detection.type}</h4>
+                <p class="text-sm text-nord-4">${detection.camera}</p>
             </div>
-            <span class="bg-nord-10 text-white text-sm px-2 py-1 rounded-full">${confidencePercent}%</span>
+            <span class="bg-nord-8 text-nord-0 text-sm px-2 py-1 rounded-full">${confidencePercent}%</span>
         </div>
-        <div class="text-sm text-nord-3">${timestamp}</div>
+        <div class="text-sm text-nord-4">${timestamp}</div>
     `;
     
     return card;
@@ -569,9 +609,9 @@ const handleAlert = (alert) => {
             alertElement.innerHTML = `
                 <div class="flex-1">
                     <p class="font-medium">${alert.message}</p>
-                    <p class="text-sm">${timestamp}</p>
+                    <p class="text-sm text-nord-4">${timestamp}</p>
                 </div>
-                ${alert.camera ? `<span class="text-sm bg-nord-11/20 px-2 py-1 rounded">${alert.camera}</span>` : ''}
+                ${alert.camera ? `<span class="text-sm bg-nord-11/20 text-nord-11 px-2 py-1 rounded">${alert.camera}</span>` : ''}
             `;
             
             alertsContainer.insertBefore(alertElement, alertsContainer.firstChild);
@@ -638,7 +678,6 @@ const initializeDashboard = async () => {
     console.log('Starting dashboard initialization...');
     
     try {
-        addStyles();
         await waitForLeaflet();
         console.log('Leaflet loaded successfully');
 
@@ -651,13 +690,12 @@ const initializeDashboard = async () => {
         initializeEventStream();
         initializeUIHandlers();
         
+        // Add debug call
+        setInterval(debugDashboardState, 5000);
+        
         console.log('Dashboard initialized successfully');
     } catch (error) {
         console.error('Dashboard initialization failed:', error);
-        const mapContainer = document.getElementById('main-map');
-        if (mapContainer) {
-            mapContainer.innerHTML = `<div class="p-4 text-red-500">Error loading map: ${error.message}</div>`;
-        }
     }
 };
 
@@ -677,4 +715,69 @@ export {
     handleAlert,
     handleMapUpdate,
     dashboardState
+};
+
+const transitionToZone = (zoneId) => {
+    const zone = dashboardState.zones.get(zoneId);
+    if (!zone) return;
+
+    // Store previous zone for transition
+    const prevZoneId = dashboardState.zoneFilter.activeZone;
+    
+    // Smooth map transition
+    dashboardState.map.flyTo(
+        [zone.center.lat, zone.center.lng],
+        Math.min(14, dashboardState.map.getZoom()),
+        {
+            duration: 1.5,
+            easeLinearity: 0.25
+        }
+    );
+
+    // Fade out previous zone
+    if (prevZoneId !== 'all' && prevZoneId !== zoneId) {
+        const prevZone = dashboardState.zones.get(prevZoneId);
+        if (prevZone && prevZone.layer) {
+            fadeOutZone(prevZone.layer);
+        }
+    }
+
+    // Fade in new zone with delay
+    setTimeout(() => {
+        highlightActiveZone(zoneId);
+        updateZoneMarkers(zoneId);
+    }, 750);
+};
+
+const fadeOutZone = (layer) => {
+    let opacity = 1;
+    const fadeInterval = setInterval(() => {
+        opacity -= 0.1;
+        if (opacity <= 0) {
+            clearInterval(fadeInterval);
+            dashboardState.map.removeLayer(layer);
+        } else {
+            layer.setStyle({ 
+                fillOpacity: opacity * 0.15,
+                opacity: opacity 
+            });
+        }
+    }, 50);
+};
+
+const updateZoneMarkers = (zoneId) => {
+    const zone = dashboardState.zones.get(zoneId);
+    if (!zone) return;
+
+    Object.entries(dashboardState.markers).forEach(([markerId, marker]) => {
+        const element = marker.getElement();
+        const isInZone = zone.cameras.has(markerId);
+        
+        element.style.transition = 'all 0.5s ease-in-out';
+        if (isInZone) {
+            element.classList.add('in-active-zone');
+        } else {
+            element.classList.add('inactive-zone');
+        }
+    });
 };

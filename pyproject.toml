@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "automobee"
+version = "0.1.0"
+description = "AutomoBee Vehicle Detection System"
+requires-python = ">=3.8"
+dependencies = [
+    "python-dotenv",
+    "asyncio",
+    "aiohttp",
+    "opencv-python",
+    "numpy",
+    "torch",
+    "sqlalchemy",
+    "aiosqlite"
+]
+
+[tool.setuptools]
+packages = ["src"] 

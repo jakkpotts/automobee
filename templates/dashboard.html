@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutomoBee Vehicle Detection</title>
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
     <script type="module" src="/static/js/dashboard.js"></script>
-    <!--     <script>window.addEventListener('error',function(e){if(e.filename&&e.filename.includes('hls.min.js.map')){e.preventDefault();return false;}});</script>
- -->
     {% if initialize_map %}
     <script>
-        // Don't call initializeDashboard() directly
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.dashboardInitialized) {
                 initializeDashboard();
@@ -19,7 +16,7 @@
             }
         });
     </script>
-{% endif %}
+    {% endif %}
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
@@ -29,24 +26,23 @@
             crossorigin=""></script>
     <!-- Tailwind CSS -->
     <link href="/static/css/tailwind.css" rel="stylesheet">
-    
 </head>
-<body class="bg-nord-6">
-    <!-- Updated Header -->
-    <header class="fixed top-0 left-0 right-0 z-40 bg-white header-shadow">
+<body class="bg-nord-0 text-nord-6">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-40 bg-nord-1 border-b border-nord-2">
         <div class="max-w-[2000px] mx-auto">
             <div class="w-full px-6 py-4 flex items-center justify-between">
                 <!-- Left section with logo -->
                 <div class="flex items-center gap-4">
-                    <div class="logo-shine w-10 h-10 bg-gradient-to-br from-nord-10 to-nord-9 rounded-xl flex items-center justify-center shadow-sm">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="logo-shine w-10 h-10 bg-gradient-to-br from-nord-8 to-nord-9 rounded-xl flex items-center justify-center shadow-sm">
+                        <svg class="w-6 h-6 text-nord-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
                         </svg>
                     </div>
                     <div class="flex flex-col">
-                        <h1 class="text-xl font-bold text-nord-0">AutomoBee</h1>
-                        <span class="text-xs text-nord-3">Vehicle Detection System</span>
+                        <h1 class="text-xl font-bold text-nord-6">AutomoBee</h1>
+                        <span class="text-xs text-nord-4">Vehicle Detection System</span>
                     </div>
                 </div>
 
@@ -55,10 +51,10 @@
                     <div class="relative">
                         <input
                             id="camera-search"
-                            class="search-input w-full bg-nord-6 text-nord-0 rounded-xl px-4 py-2.5 pl-10 border border-nord-4 focus:outline-none focus:ring-2 focus:ring-nord-10/50 focus:border-nord-10"
+                            class="search-input w-full bg-nord-2 text-nord-6 rounded-xl px-4 py-2.5 pl-10 border border-nord-3 focus:outline-none focus:ring-2 focus:ring-nord-8/50 focus:border-nord-8"
                             placeholder="Search cameras by location or ID..."
                         />
-                        <svg class="w-5 h-5 text-nord-3 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-nord-4 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
@@ -66,13 +62,13 @@
 
                 <!-- Right section with actions -->
                 <div class="flex items-center gap-3">
-                    <button id="refresh-detections" class="header-button bg-nord-10 text-white hover:bg-nord-9">
+                    <button id="refresh-detections" class="header-button bg-nord-8 text-nord-0 hover:bg-nord-7">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                         <span>Refresh</span>
                     </button>
-                    <button class="header-button bg-nord-5 text-nord-0 hover:bg-nord-4">
+                    <button class="header-button bg-nord-2 text-nord-6 hover:bg-nord-3">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -87,54 +83,71 @@
     <!-- Main Content -->
     <div class="pt-16 flex h-screen">
         <!-- Sidebar -->
-        <aside class="w-80 bg-white border-r border-nord-4 p-6 overflow-y-auto">
+        <aside class="w-64 bg-indigo-800 text-white">
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="stats-card">
-                    <p class="text-sm text-nord-3">Total Detections</p>
-                    <h3 id="total-detections" class="text-2xl font-bold text-nord-10">0</h3>
+                <div class="stats-card bg-nord-2 text-nord-6">
+                    <p class="text-sm text-nord-4">Total Detections</p>
+                    <h3 id="total-detections" class="text-2xl font-bold text-nord-8">0</h3>
                 </div>
-                <div class="stats-card">
-                    <p class="text-sm text-nord-3">Active Cameras</p>
+                <div class="stats-card bg-nord-2 text-nord-6">
+                    <p class="text-sm text-nord-4">Active Cameras</p>
                     <h3 id="active-cameras" class="text-2xl font-bold text-nord-14">0</h3>
                 </div>
-                <div class="stats-card col-span-2">
-                    <p class="text-sm text-nord-3">Detection Rate</p>
+                <div class="stats-card bg-nord-2 text-nord-6 col-span-2">
+                    <p class="text-sm text-nord-4">Detection Rate</p>
                     <h3 id="detection-rate" class="text-2xl font-bold text-nord-15">0/hr</h3>
                 </div>
             </div>
 
             <!-- Camera Status -->
             <div class="mb-6">
-                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Camera Status</h2>
+                <h2 class="text-sm font-semibold text-nord-4 uppercase mb-3">Camera Status</h2>
                 <div id="camera-status-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
             </div>
 
             <!-- Camera List -->
             <div class="mb-6">
-                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Cameras</h2>
+                <h2 class="text-sm font-semibold text-nord-4 uppercase mb-3">Cameras</h2>
                 <div id="camera-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
             </div>
 
             <!-- Alerts -->
             <div>
-                <h2 class="text-sm font-semibold text-nord-3 uppercase mb-3">Active Alerts</h2>
+                <h2 class="text-sm font-semibold text-nord-4 uppercase mb-3">Active Alerts</h2>
                 <div id="alerts-container" class="space-y-2 max-h-48 overflow-y-auto"></div>
+            </div>
+
+            <!-- Zones -->
+            <div class="p-4 border-t border-indigo-700">
+                <h2 class="font-semibold mb-2">Zones</h2>
+                <div id="zone-controls" class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span>Active Zones:</span>
+                        <span id="active-zones-count">0/5</span>
+                    </div>
+                    <div id="zone-list" class="space-y-1">
+                        <!-- Zone items will be inserted here -->
+                    </div>
+                    <button id="create-zone" class="w-full bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded-lg text-sm">
+                        Create New Zone
+                    </button>
+                </div>
             </div>
         </aside>
 
         <!-- Main Area -->
-        <main class="flex-1 p-6 bg-nord-6 overflow-y-auto">
+        <main class="flex-1 p-6 bg-nord-0 overflow-y-auto">
             <!-- Map Section -->
-            <div class="bg-white rounded-lg shadow-sm border border-nord-4 mb-6">
-                <div class="p-4 border-b border-nord-4 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold text-nord-0">Live Map View</h2>
+            <div class="bg-nord-1 rounded-lg shadow-sm border border-nord-2 mb-6">
+                <div class="p-4 border-b border-nord-2 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-nord-6">Live Map View</h2>
                     <div class="flex items-center space-x-4">
-                        <select id="map-mode" class="bg-nord-6 text-nord-0 rounded-lg px-3 py-1.5 border border-nord-4">
+                        <select id="map-mode" class="bg-nord-2 text-nord-6 rounded-lg px-3 py-1.5 border border-nord-3">
                             <option value="cameras">Camera Locations</option>
                             <option value="detections">Recent Detections</option>
                         </select>
-                        <button id="recenter-map" class="bg-nord-5 text-nord-0 px-3 py-1.5 rounded-lg hover:bg-nord-4 transition-colors">
+                        <button id="recenter-map" class="bg-nord-2 text-nord-6 px-3 py-1.5 rounded-lg hover:bg-nord-3 transition-colors">
                             Recenter
                         </button>
                     </div>
@@ -145,19 +158,19 @@
             </div>
 
             <!-- Recent Detections -->
-            <div class="bg-white rounded-lg shadow-sm border border-nord-4">
-                <div class="p-4 border-b border-nord-4 flex justify-between items-center">
+            <div class="bg-nord-1 rounded-lg shadow-sm border border-nord-2">
+                <div class="p-4 border-b border-nord-2 flex justify-between items-center">
                     <div class="flex items-center space-x-4">
-                        <h2 class="text-lg font-semibold text-nord-0">Recent Detections</h2>
-                        <span id="detection-count" class="bg-nord-10 text-white px-2 py-1 rounded-full text-sm">0</span>
+                        <h2 class="text-lg font-semibold text-nord-6">Recent Detections</h2>
+                        <span id="detection-count" class="bg-nord-8 text-nord-0 px-2 py-1 rounded-full text-sm">0</span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <select id="detection-filter" class="bg-nord-6 text-nord-0 rounded-lg px-3 py-1.5 border border-nord-4">
+                        <select id="detection-filter" class="bg-nord-2 text-nord-6 rounded-lg px-3 py-1.5 border border-nord-3">
                             <option value="all">All Types</option>
                             <option value="ford_f150">Ford F-150</option>
                             <option value="other">Other</option>
                         </select>
-                        <button id="clear-detections" class="bg-nord-5 text-nord-0 px-3 py-1.5 rounded-lg hover:bg-nord-4 transition-colors">
+                        <button id="clear-detections" class="bg-nord-2 text-nord-6 px-3 py-1.5 rounded-lg hover:bg-nord-3 transition-colors">
                             Clear
                         </button>
                     </div>
@@ -170,18 +183,18 @@
     </div>
 
     <!-- Stream Modal -->
-    <div id="stream-modal" class="fixed inset-0 bg-nord-0/80 items-center justify-center backdrop-blur-sm z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 border border-nord-4">
-            <div class="p-4 border-b border-nord-4 flex justify-between items-center">
-                <h3 id="stream-title" class="text-lg font-semibold text-nord-0"></h3>
-                <button onclick="closeStreamModal()" class="text-nord-3 hover:text-nord-0 transition-colors">
+    <div id="stream-modal" class="fixed inset-0 bg-nord-0/90 items-center justify-center backdrop-blur-sm z-50 hidden">
+        <div class="bg-nord-1 rounded-lg shadow-xl max-w-4xl w-full m-4 border border-nord-2">
+            <div class="p-4 border-b border-nord-2 flex justify-between items-center">
+                <h3 id="stream-title" class="text-lg font-semibold text-nord-6"></h3>
+                <button onclick="closeStreamModal()" class="text-nord-4 hover:text-nord-6 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
             <div class="p-4">
-                <video id="stream-player" controls autoplay muted class="w-full rounded-lg bg-nord-5"></video>
+                <video id="stream-player" controls autoplay muted class="w-full rounded-lg bg-nord-0"></video>
             </div>
         </div>
     </div>    
